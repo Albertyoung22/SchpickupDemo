@@ -211,6 +211,7 @@ def handle_message(event):
 
     # 2. Check Registration
     if user_id not in PARENTS_DB:
+        logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
         line_reply(event.reply_token, HELP_TEXT)
         return
 
@@ -267,7 +268,7 @@ def handle_message(event):
 def handle_follow(event):
     """當使用者加入好友時，主動發送註冊說明"""
     user_id = event.source.user_id
-    logger.info(f"New Follower: {user_id}")
+    logger.info(f"✨ [新好友] 使用者加入: {user_id}")
     
     welcome_text = (
         "👋 您好！歡迎使用【學生接送廣播系統】。\n\n"
@@ -280,14 +281,14 @@ def handle_postback(event):
     """處理 Rich Menu 或按鈕點擊事件，若未註冊則提示"""
     user_id = event.source.user_id
     data = event.postback.data
-    logger.info(f"Postback received from {user_id}: {data}")
+    logger.info(f"🔘 [選單點擊] 使用者: {user_id}, 動作: {data}")
 
     if user_id not in PARENTS_DB:
+        logger.warning(f"🚨 [未註冊點擊] 使用者 {user_id} 嘗試點擊選單: {data}")
         line_reply(event.reply_token, HELP_TEXT)
         return
 
-    # 若已註冊，則將 postback data 當作文字訊息處理 (例如按鈕設為已到達)
-    # 我們這裡手動模擬一個 TextMessageContent 的處理
+    # 若已註冊，則將 postback data 當作文字訊息處理 (模擬家長輸入文字)
     event.message = type('obj', (object,), {'text': data})
     handle_message(event)
 

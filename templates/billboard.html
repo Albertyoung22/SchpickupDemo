@@ -76,30 +76,36 @@
             speak("系統語音連線成功，準備接待家長。", null);
         }
 
-        function speak(text, audioUrl) {
+        function speak(text, audioUrl, retryCount = 0) {
             if (!isStarted) return;
             
-            // 優先嘗試播放 Edge TTS 預產生的音檔
             if (audioUrl) {
                 const fullUrl = audioUrl.startsWith('http') ? audioUrl : (window.location.origin + (audioUrl.startsWith('/') ? '' : '/') + audioUrl);
-                log("🔊 正在播放 Edge TTS: " + text);
                 
                 if (currentAudio) {
                     currentAudio.pause();
                     currentAudio = null;
                 }
 
-                currentAudio = new Audio(fullUrl);
-                currentAudio.play().then(() => {
-                    log("✅ 播放成功: " + text);
+                log(`🔊 嘗試播放 Edge TTS (第${retryCount+1}次): ${text}`);
+                const audio = new Audio(fullUrl);
+                
+                audio.play().then(() => {
+                    currentAudio = audio;
+                    log("✅ Edge TTS 播放成功");
                 }).catch(e => {
-                    log("⚠️ 音檔播放失敗，切換備援語音");
-                    fallbackSpeak(text);
+                    // 如果是檔案還沒準備好 (或者是 404)，且重試次數少於 3 次
+                    if (retryCount < 3) {
+                        log(`⏳ 音檔準備中，1秒後重試...`);
+                        setTimeout(() => speak(text, audioUrl, retryCount + 1), 1000);
+                    } else {
+                        log("⚠️ 多次重試失敗，切換備援語音");
+                        fallbackSpeak(text);
+                    }
                 });
                 return;
             }
 
-            // 如果沒有音檔，才使用瀏覽器內建語音
             fallbackSpeak(text);
         }
 

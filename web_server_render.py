@@ -7,9 +7,8 @@ import logging
 import queue
 import time
 import datetime
-from flask import Flask, request, abort, jsonify, render_template, send_file, make_response
+from flask import Flask, request, abort, jsonify, render_template, send_file
 from flask_cors import CORS
-from flask_sock import Sock  # Added for real-time broadcast
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
@@ -25,65 +24,16 @@ logger = logging.getLogger("PickupRenderServer")
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app) # Enable CORS for cross-domain access
-sock = Sock(app) # WebSocket instance
 
-# WebSocket client management (similar to RelayBell_demo.py)
-WEB_WS_CLIENTS = []
-WEB_WS_LOCK = threading.Lock()
-
-def broadcast_web_audio(audio_url, text):
-    """Notify all connected web clients to play the audio immediately."""
-    msg = json.dumps({
-        "type": "play_audio",
-        "url": audio_url,
-        "text": text,
-        "ts": time.time()
-    })
-    logger.info(f"📡 [WS-廣播] 正在推送語音通知到所有 Web 端 ({len(WEB_WS_CLIENTS)} 個連線)")
-    dead = []
-    with WEB_WS_LOCK:
-        for ws in WEB_WS_CLIENTS:
-            try:
-                ws.send(msg)
-            except Exception:
-                dead.append(ws)
-        for d in dead:
-            if d in WEB_WS_CLIENTS:
-                WEB_WS_CLIENTS.remove(d)
-
-@sock.route('/ws/web')
-def ws_web_handler(ws):
-    """WebSocket endpoint for billboards/dashboards."""
-    with WEB_WS_LOCK:
-        WEB_WS_CLIENTS.append(ws)
-    logger.info(f"🔌 [WS-連線] 新 Web 端已接入: {request.remote_addr}")
-    try:
-        while True:
-            data = ws.receive()
-            if not data: break
-            # Keep-alive or interactions
-    except Exception: pass
-    finally:
-        with WEB_WS_LOCK:
-            if ws in WEB_WS_CLIENTS:
-                WEB_WS_CLIENTS.remove(ws)
-        logger.info(f"🔌 [WS-斷線] Web 端已離線")
-
-# Config from Env Vars (CRITICAL CHECK)
-CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '9825dc29feb8522d4fc1e273411d8f37').strip()
-CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'q7yFoNUKHDPZZfo25zCWWEBUWhayXbnrysiE3w+xZMzHNXMJdeNJf8TpEFam3zNBLpTFgj7dLBPUGK7hrAdcf6DRKL7iDZh8b07n0rCFuypHdIYQ/s2kEHo1X+JnFIMbdSArXv/PylVkuBXpdrTQCgdB04t89/1O/w1cDnyilFU=').strip()
-
-if not CHANNEL_ACCESS_TOKEN:
-    logger.critical("❌ [FATAL] LINE_CHANNEL_ACCESS_TOKEN 尚未設定！請至 Render 後台環境變數設定。指令回覆將失效。")
-
+# Config from Env Vars
+CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '9825dc29feb8522d4fc1e273411d8f37')
+CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', '')
 handler = WebhookHandler(CHANNEL_SECRET)
 
 # Audio directory (absolute path)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "static", "audio")
-if not os.path.exists(AUDIO_DIR):
-    os.makedirs(AUDIO_DIR)
-    logger.info(f"📁 Created audio dir: {AUDIO_DIR}")
+if not os.path.exists(AUDIO_DIR): os.makedirs(AUDIO_DIR)
 
 VOICE_CODE = "zh-TW-HsiaoChenNeural" # Default: HsiaoChen
 VOICE_RATE = "+0%"
@@ -91,9 +41,8 @@ VOICE_VOLUME = "+0%"
 
 speech_queue = queue.Queue()
 
-# --- Database & History (Persistent) ---
-PARENTS_FILE = os.path.join(BASE_DIR, "parents.json")
-HISTORY_FILE = os.path.join(BASE_DIR, "history.json")
+# --- Database & History ---
+PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
 
@@ -143,61 +92,18 @@ def save_parents_db():
     try:
         with open(PARENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
-        logger.info(f"💾 Saved parents DB to {PARENTS_FILE}")
     except Exception as e:
         logger.error(f"Error saving {PARENTS_FILE}: {e}")
 
-def load_history():
-    global pickup_history
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                pickup_history = json.load(f)
-            logger.info(f"📂 Loaded history ({len(pickup_history)} records)")
-        except Exception as e:
-            logger.error(f"Error loading {HISTORY_FILE}: {e}")
-            pickup_history = []
-    else: pickup_history = []
-
-def save_history():
-    try:
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(pickup_history, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        logger.error(f"Error saving {HISTORY_FILE}: {e}")
-
 load_parents_db()
-load_history()
 
 # --- Speech worker thread (Generates MP3 for clients) ---
 async def generate_speech(text, v, r, vol, audio_path):
-    # Robust TTS with fallback voices and sanitized parameters
-    # Matches the style in the main RelayBell script
-    s_rate = str(r).strip()
-    if not (s_rate.startswith('+') or s_rate.startswith('-')): s_rate = "+" + s_rate
-    if not s_rate.endswith('%'): s_rate += "%"
-
-    # Define fallback trials
-    trials = [
-        (v, s_rate),
-        (v, "+0%"),
-        ("zh-TW-HsiaoChenNeural", "+0%"),
-        ("en-US-JennyNeural", "+0%"),
-    ]
-
-    last_e = ""
-    for trial_voice, trial_rate in trials:
-        try:
-            logger.info(f"🎤 [TTS嘗試] {trial_voice} ({trial_rate}) 文字: {text[:20]}")
-            communicate = edge_tts.Communicate(text, trial_voice, rate=trial_rate, volume=vol)
-            await communicate.save(audio_path)
-            if os.path.exists(audio_path) and os.path.getsize(audio_path) > 0:
-                return True
-        except Exception as e:
-            last_e = str(e)
-            logger.warning(f"⚠️ [TTS嘗試失敗] {trial_voice}: {e}")
-            continue
-    return False
+    try:
+        communicate = edge_tts.Communicate(text, v, rate=r, volume=vol)
+        await communicate.save(audio_path)
+    except Exception as e:
+        logger.error(f"TTS Generation Error: {e}")
 
 def speech_worker_thread():
     while True:
@@ -207,19 +113,14 @@ def speech_worker_thread():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            logger.info(f"🎤 [背景生成] {text} -> {audio_path}")
-            # Use global VOICE_CODE, etc.
-            success = loop.run_until_complete(generate_speech(text, VOICE_CODE, VOICE_RATE, VOICE_VOLUME, audio_path))
-            if success:
-                logger.info(f"✅ [生成成功] 大小: {os.path.getsize(audio_path)} bytes")
-                # Immediately broadcast via WebSockets so the board plays it now!
-                audio_filename = os.path.basename(audio_path)
-                audio_url = f"/get_audio/{audio_filename}"
-                broadcast_web_audio(audio_url, text)
+            logger.info(f"🎤 [語音生成] 正在產製音檔: {text} -> {audio_path}")
+            loop.run_until_complete(generate_speech(text, VOICE_CODE, VOICE_RATE, VOICE_VOLUME, audio_path))
+            if os.path.exists(audio_path):
+                logger.info(f"✅ [生成成功] 檔案已存在: {audio_path} (大小: {os.path.getsize(audio_path)} bytes)")
             else:
-                logger.error(f"❌ [生成失敗] 所有嘗試皆失敗")
+                logger.error(f"❌ [生成失敗] 檔案未能在預期位置找到: {audio_path}")
         except Exception as e:
-            logger.error(f"❌ [背景生成異常]: {e}")
+            logger.error(f"❌ [語音異常] 發生非預期錯誤: {e}")
         finally:
             loop.close()
         speech_queue.task_done()
@@ -290,17 +191,12 @@ def get_audio(filename):
 def callback():
     signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
-    
-    # Debug Logging for 400 errors
-    logger.info(f"📨 [Webhook] 收到請求 - 長度: {len(body or '')}, 簽章: {signature[:10] if signature else 'None'}...")
-    
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        logger.error("❌ [Webhook] 簽章驗證失敗 (Invalid Signature)！請檢查 LINE_CHANNEL_SECRET 是否正確。")
         abort(400)
     except Exception as e:
-        logger.error(f"❌ [Webhook] 處理過程發生錯誤: {e}")
+        logger.error(f"Webhook processing error: {e}")
         abort(500)
     return 'OK', 200
 
@@ -323,18 +219,16 @@ def handle_message(event):
         line_reply(event.reply_token, HELP_TEXT)
         return
 
-    # 2. Check Registration (CRITICAL: Every broadcast attempt must be blocked with a warning if not registered)
+    # 2. Check Registration
     if user_id not in PARENTS_DB:
-        logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息或點選選單: {msg_text}")
-        # Explicit warning to the user so they don't think broadcast succeeded
-        line_reply(event.reply_token, "⚠️ 【警告：呼叫失敗】\n\n您尚未完成身份註冊，系統無法為您廣播。請先依照下方指示完成註冊。\n\n" + HELP_TEXT)
+        logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
+        line_reply(event.reply_token, HELP_TEXT)
         return
 
-    # 3. Process Broadcast Message (Only for registered parents)
+    # Process Broadcast Message
     parent_name = PARENTS_DB[user_id]
     s_text, s_label, s_class = msg_text, "通知", "type-soon"
     
-    # Handle known button texts (from Rich Menu message actions)
     if "已到達" in msg_text:
         s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
     elif "即將到達" in msg_text:
@@ -364,7 +258,6 @@ def handle_message(event):
     # Store in history
     pickup_history.insert(0, entry)
     if len(pickup_history) > 30: pickup_history.pop()
-    save_history() # Persist to disk
     
     # Queue audio generation
     speech_queue.put((f"{parent_name} {s_text}", audio_full_path))
@@ -395,24 +288,18 @@ def handle_follow(event):
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
-    """處理 Rich Menu 或按鈕點擊事件 (postback data)"""
+    """處理 Rich Menu 或按鈕點擊事件，若未註冊則提示"""
     user_id = event.source.user_id
     data = event.postback.data
     logger.info(f"🔘 [選單點擊] 使用者: {user_id}, 動作: {data}")
 
-    # Standardize: Convert postback into message-like flow for handle_message to digest
-    # But we perform registration check here too for immediate feedback
     if user_id not in PARENTS_DB:
-        logger.warning(f"🚨 [未註冊點擊] 使用者 {user_id} 點擊選單: {data}")
-        line_reply(event.reply_token, "⚠️ 【警告：功能受限】\n\n偵測到您尚未註冊，請先輸入【#學生姓名】完成註冊後再使用選單按鈕。\n\n" + HELP_TEXT)
+        logger.warning(f"🚨 [未註冊點擊] 使用者 {user_id} 嘗試點擊選單: {data}")
+        line_reply(event.reply_token, HELP_TEXT)
         return
 
-    # If registered, simulate a message event so we don't duplicate broadcast logic
-    # Creating a mock message object
-    class MockMessage:
-        def __init__(self, text): self.text = text
-    
-    event.message = MockMessage(data)
+    # 若已註冊，則將 postback data 當作文字訊息處理 (模擬家長輸入文字)
+    event.message = type('obj', (object,), {'text': data})
     handle_message(event)
 
 if __name__ == "__main__":

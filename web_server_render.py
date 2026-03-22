@@ -99,11 +99,33 @@ load_parents_db()
 
 # --- Speech worker thread (Generates MP3 for clients) ---
 async def generate_speech(text, v, r, vol, audio_path):
-    try:
-        communicate = edge_tts.Communicate(text, v, rate=r, volume=vol)
-        await communicate.save(audio_path)
-    except Exception as e:
-        logger.error(f"TTS Generation Error: {e}")
+    # Robust TTS with fallback voices and sanitized parameters
+    # Matches the style in the main RelayBell script
+    s_rate = str(r).strip()
+    if not (s_rate.startswith('+') or s_rate.startswith('-')): s_rate = "+" + s_rate
+    if not s_rate.endswith('%'): s_rate += "%"
+
+    # Define fallback trials
+    trials = [
+        (v, s_rate),
+        (v, "+0%"),
+        ("zh-TW-HsiaoChenNeural", "+0%"),
+        ("en-US-JennyNeural", "+0%"),
+    ]
+
+    last_e = ""
+    for trial_voice, trial_rate in trials:
+        try:
+            logger.info(f"🎤 [TTS嘗試] {trial_voice} ({trial_rate}) 文字: {text[:20]}")
+            communicate = edge_tts.Communicate(text, trial_voice, rate=trial_rate, volume=vol)
+            await communicate.save(audio_path)
+            if os.path.exists(audio_path) and os.path.getsize(audio_path) > 0:
+                return True
+        except Exception as e:
+            last_e = str(e)
+            logger.warning(f"⚠️ [TTS嘗試失敗] {trial_voice}: {e}")
+            continue
+    return False
 
 def speech_worker_thread():
     while True:
@@ -113,8 +135,15 @@ def speech_worker_thread():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            loop.run_until_complete(generate_speech(text, VOICE_CODE, VOICE_RATE, VOICE_VOLUME, audio_path))
-            logger.info(f"Generated audio: {audio_path}")
+            logger.info(f"🎤 [背景生成] {text} -> {audio_path}")
+            # Use global VOICE_CODE, etc.
+            success = loop.run_until_complete(generate_speech(text, VOICE_CODE, VOICE_RATE, VOICE_VOLUME, audio_path))
+            if success:
+                logger.info(f"✅ [生成成功] 大小: {os.path.getsize(audio_path)} bytes")
+            else:
+                logger.error(f"❌ [生成失敗] 所有嘗試皆失敗")
+        except Exception as e:
+            logger.error(f"❌ [背景生成異常]: {e}")
         finally:
             loop.close()
         speech_queue.task_done()
@@ -173,6 +202,10 @@ def get_audio(filename):
         resp = send_file(path, mimetype="audio/mpeg")
         resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return resp
+    
+    # 這裡如果找不到，我們記錄目前的目錄內容來除錯
+    logger.warning(f"🔍 [404 音檔請求] 找不到檔案: {path}")
+    logger.info(f"📂 目前音檔目錄內容: {os.listdir(AUDIO_DIR)[:10]}")
     return "No audio found", 404
 
 # --- LINE Webhook Handler ---

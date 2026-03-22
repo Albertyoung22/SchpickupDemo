@@ -7,8 +7,9 @@ import logging
 import queue
 import time
 import datetime
-from flask import Flask, request, abort, jsonify, render_template, send_file
+from flask import Flask, request, abort, jsonify, render_template, send_file, make_response
 from flask_cors import CORS
+from flask_sock import Sock  # Added for real-time broadcast
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
@@ -24,6 +25,49 @@ logger = logging.getLogger("PickupRenderServer")
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app) # Enable CORS for cross-domain access
+sock = Sock(app) # WebSocket instance
+
+# WebSocket client management (similar to RelayBell_demo.py)
+WEB_WS_CLIENTS = []
+WEB_WS_LOCK = threading.Lock()
+
+def broadcast_web_audio(audio_url, text):
+    """Notify all connected web clients to play the audio immediately."""
+    msg = json.dumps({
+        "type": "play_audio",
+        "url": audio_url,
+        "text": text,
+        "ts": time.time()
+    })
+    logger.info(f"📡 [WS-廣播] 正在推送語音通知到所有 Web 端 ({len(WEB_WS_CLIENTS)} 個連線)")
+    dead = []
+    with WEB_WS_LOCK:
+        for ws in WEB_WS_CLIENTS:
+            try:
+                ws.send(msg)
+            except Exception:
+                dead.append(ws)
+        for d in dead:
+            if d in WEB_WS_CLIENTS:
+                WEB_WS_CLIENTS.remove(d)
+
+@sock.route('/ws/web')
+def ws_web_handler(ws):
+    """WebSocket endpoint for billboards/dashboards."""
+    with WEB_WS_LOCK:
+        WEB_WS_CLIENTS.append(ws)
+    logger.info(f"🔌 [WS-連線] 新 Web 端已接入: {request.remote_addr}")
+    try:
+        while True:
+            data = ws.receive()
+            if not data: break
+            # Keep-alive or interactions
+    except Exception: pass
+    finally:
+        with WEB_WS_LOCK:
+            if ws in WEB_WS_CLIENTS:
+                WEB_WS_CLIENTS.remove(ws)
+        logger.info(f"🔌 [WS-斷線] Web 端已離線")
 
 # Config from Env Vars
 CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '9825dc29feb8522d4fc1e273411d8f37')
@@ -140,6 +184,10 @@ def speech_worker_thread():
             success = loop.run_until_complete(generate_speech(text, VOICE_CODE, VOICE_RATE, VOICE_VOLUME, audio_path))
             if success:
                 logger.info(f"✅ [生成成功] 大小: {os.path.getsize(audio_path)} bytes")
+                # Immediately broadcast via WebSockets so the board plays it now!
+                audio_filename = os.path.basename(audio_path)
+                audio_url = f"/get_audio/{audio_filename}"
+                broadcast_web_audio(audio_url, text)
             else:
                 logger.error(f"❌ [生成失敗] 所有嘗試皆失敗")
         except Exception as e:
@@ -242,16 +290,18 @@ def handle_message(event):
         line_reply(event.reply_token, HELP_TEXT)
         return
 
-    # 2. Check Registration
+    # 2. Check Registration (CRITICAL: Every broadcast attempt must be blocked with a warning if not registered)
     if user_id not in PARENTS_DB:
-        logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
-        line_reply(event.reply_token, HELP_TEXT)
+        logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息或點選選單: {msg_text}")
+        # Explicit warning to the user so they don't think broadcast succeeded
+        line_reply(event.reply_token, "⚠️ 【警告：呼叫失敗】\n\n您尚未完成身份註冊，系統無法為您廣播。請先依照下方指示完成註冊。\n\n" + HELP_TEXT)
         return
 
-    # Process Broadcast Message
+    # 3. Process Broadcast Message (Only for registered parents)
     parent_name = PARENTS_DB[user_id]
     s_text, s_label, s_class = msg_text, "通知", "type-soon"
     
+    # Handle known button texts (from Rich Menu message actions)
     if "已到達" in msg_text:
         s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
     elif "即將到達" in msg_text:
@@ -311,18 +361,24 @@ def handle_follow(event):
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
-    """處理 Rich Menu 或按鈕點擊事件，若未註冊則提示"""
+    """處理 Rich Menu 或按鈕點擊事件 (postback data)"""
     user_id = event.source.user_id
     data = event.postback.data
     logger.info(f"🔘 [選單點擊] 使用者: {user_id}, 動作: {data}")
 
+    # Standardize: Convert postback into message-like flow for handle_message to digest
+    # But we perform registration check here too for immediate feedback
     if user_id not in PARENTS_DB:
-        logger.warning(f"🚨 [未註冊點擊] 使用者 {user_id} 嘗試點擊選單: {data}")
-        line_reply(event.reply_token, HELP_TEXT)
+        logger.warning(f"🚨 [未註冊點擊] 使用者 {user_id} 點擊選單: {data}")
+        line_reply(event.reply_token, "⚠️ 【警告：功能受限】\n\n偵測到您尚未註冊，請先輸入【#學生姓名】完成註冊後再使用選單按鈕。\n\n" + HELP_TEXT)
         return
 
-    # 若已註冊，則將 postback data 當作文字訊息處理 (模擬家長輸入文字)
-    event.message = type('obj', (object,), {'text': data})
+    # If registered, simulate a message event so we don't duplicate broadcast logic
+    # Creating a mock message object
+    class MockMessage:
+        def __init__(self, text): self.text = text
+    
+    event.message = MockMessage(data)
     handle_message(event)
 
 if __name__ == "__main__":

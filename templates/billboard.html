@@ -142,6 +142,44 @@
             }, 50);
         }
 
+        // --- WebSocket Real-time Audio ---
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/web`;
+            log(`🔌 正在連接 WebSocket: ${wsUrl}`);
+            
+            const ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                log("🟢 WebSocket 已連線 (語音推送就緒)");
+                document.getElementById('heart-rate').style.color = '#2ecc71';
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'play_audio') {
+                        log(`🎁 [推送語音] ${data.text}`);
+                        // 從推送中取得 URL 並播放
+                        speak(data.text, data.url);
+                    }
+                } catch (e) {
+                    log("❌ WS 解析錯誤");
+                }
+            };
+            
+            ws.onclose = () => {
+                log("🔴 WebSocket 已斷線，3秒後嘗試重連...");
+                document.getElementById('heart-rate').style.color = '#f1c40f';
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = (err) => {
+                log("❌ WebSocket 發生錯誤");
+                ws.close();
+            };
+        }
+
         async function fetchData() {
             try {
                 const apiUrl = window.location.pathname.includes('/pickup') ? '/pickup/api/poll' : '/api/poll';
@@ -155,10 +193,9 @@
                     const first = history[0];
                     const rid = first.name + "_" + first.time;
 
+                    // 這裡只負責更新表格，不再負責觸發語音 (改由 WebSocket 觸發)
                     if (rid !== lastParentTime) {
-                        log("🔥 偵測到新狀態: " + rid);
-                        // 帶入 audio_url 給 speak 函數
-                        speak(first.speech_text, first.audio_url);
+                        log("🔥 偵測到新資料 (更新表格): " + rid);
                         lastParentTime = rid;
                         
                         if (first.class === 'type-arrived') {
@@ -185,14 +222,16 @@
             document.getElementById('content-area').innerHTML = html;
         }
 
-        // --- 強力保活機制 (每 15 秒執行一次) ---
+        // --- 強力保活機制 ---
         setInterval(() => {
             if (isStarted) {
                 window.speechSynthesis.resume();
-                document.getElementById('heart-rate').innerText = "💓 跳動中: " + new Date().getSeconds();
+                document.getElementById('heart-rate').innerText = "💓 跳動中";
             }
         }, 15000);
 
+        // 初始化
+        initWebSocket();
         setInterval(fetchData, 3000);
     </script>
 </body>

@@ -7,3 +7,4 @@ flask-cors==5.0.1
 httpx==0.28.1
 flask-sock==0.7.0
 simple-websocket==1.1.0
+gevent==24.11.1

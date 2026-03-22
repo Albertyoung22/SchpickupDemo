@@ -290,12 +290,17 @@ def get_audio(filename):
 def callback():
     signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
+    
+    # Debug Logging for 400 errors
+    logger.info(f"📨 [Webhook] 收到請求 - 長度: {len(body or '')}, 簽章: {signature[:10] if signature else 'None'}...")
+    
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        logger.error("❌ [Webhook] 簽章驗證失敗 (Invalid Signature)！請檢查 LINE_CHANNEL_SECRET 是否正確。")
         abort(400)
     except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
+        logger.error(f"❌ [Webhook] 處理過程發生錯誤: {e}")
         abort(500)
     return 'OK', 200
 

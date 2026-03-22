@@ -197,8 +197,8 @@ def handle_message(event):
             reply(f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
 
-    # Help command
-    if msg_text in ["幫助", "註冊", "？", "?", "選單"]:
+    # Help command / Registration Guide (不會觸發廣播)
+    if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊"]:
         reply(HELP_TEXT)
         return
 

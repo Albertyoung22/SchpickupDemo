@@ -41,6 +41,11 @@ VOICE_VOLUME = "+0%"
 
 speech_queue = queue.Queue()
 
+# --- Database & History ---
+PARENTS_FILE = "parents.json"
+PARENTS_DB = {}
+pickup_history = []
+
 HELP_TEXT = (
     "🛑 【重要通知：您尚未完成註冊】\n\n"
     "在使用接送廣播功能前，請務必先完成註冊：\n"

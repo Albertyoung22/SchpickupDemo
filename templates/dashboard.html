@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>📋 導護老師監控控制台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 15px; margin-bottom: 20px; }
+        h1 { margin: 0; color: #1a73e8; }
+        .timer { font-weight: bold; color: #666; font-size: 1.2rem; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 15px; text-align: left; border-bottom: 2px solid #eee; color: #555; }
+        td { padding: 15px; border-bottom: 1px solid #eee; }
+        
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; display: inline-block; }
+        .type-arrived { background-color: #ffeeee; color: #d32f2f; }
+        .type-soon { background-color: #fff3e0; color: #e65100; }
+        .type-thanks { background-color: #e8f5e9; color: #2e7d32; }
+        
+        .action-btn { background: #34a853; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .action-btn:hover { background: #2d8e47; transform: translateY(-1px); }
+        .action-btn:active { background: #267a3d; transform: translateY(0); }
+        
+        .empty-hint { text-align: center; color: #999; padding: 50px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display:flex; align-items:center;">
+                <img src="/static/images/sch_pickup_banner_wide.png" style="height: 40px; margin-right: 12px; border-radius: 5px;">
+                <h1>🏫 導護現場監控台</h1>
+            </div>
+            <div class="timer" id="clock">---</div>
+        </div>
+
+        <div id="content-area">
+            <div class="empty-hint">連線中...</div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/pickup/api/poll');
+                const data = await res.json();
+                document.getElementById('clock').innerText = "最後更新：" + data.now;
+                renderTable(data.history);
+            } catch (e) {
+                console.error("Dashboard Poll Error:", e);
+            }
+        }
+
+        async function clearParent(name) {
+            if (!confirm(`確定要將「${name}」從看板移除嗎？`)) return;
+            try {
+                const res = await fetch('/pickup/api/clear_parent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name: name })
+                });
+                if (res.ok) fetchData();
+            } catch (e) { alert("清除失敗"); }
+        }
+
+        function renderTable(history) {
+            if (history.length === 0) {
+                document.getElementById('content-area').innerHTML = '<div class="empty-hint">目前暫無接送資料</div>';
+                return;
+            }
+
+            let html = `<table><thead><tr><th>家長/學生</th><th>目前狀態</th><th>時間</th><th>管理操作</th></tr></thead><tbody>`;
+            history.forEach(item => {
+                html += `<tr>
+                    <td><strong>${item.name}</strong></td>
+                    <td><span class="status-badge ${item.class}">${item.status}</span></td>
+                    <td style="color:#888;">${item.time}</td>
+                    <td>
+                        <button class="action-btn" onclick="clearParent('${item.name}')">✅ 確認接走並移除</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('content-area').innerHTML = html;
+        }
+
+        setInterval(fetchData, 4000);
+        fetchData();
+    </script>
+</body>
+</html>

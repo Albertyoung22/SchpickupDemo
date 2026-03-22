@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚨 接送看板 (語音持久除錯版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { background: #000; color: #fff; font-family: 'Microsoft JhengHei', sans-serif; margin: 0; padding: 10px; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        .latest-box { background: #b71c1c; padding: 20px; border-radius: 10px; margin: 15px 0; text-align: center; font-size: 40px; border: 2px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        table { width: 100%; border-collapse: collapse; }
+        .name { font-size: 80px; font-weight: 900; }
+        .status-tag { padding: 5px 30px; border-radius: 50px; font-size: 40px; font-weight: bold; }
+        .tag-arrived { background: #ff3b30; animation: pulse 1s infinite; }
+        .tag-soon { background: #ff9500; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0px #ff3b30; } 70% { box-shadow: 0 0 0 20px rgba(255,59,48,0); } 100% { box-shadow: 0 0 0 0px rgba(255,59,48,0); } }
+        
+        #debug-panel { position: fixed; bottom: 0; left: 0; width: 100%; background: #111; padding: 10px; font-size: 14px; border-top: 1px solid #333; display: flex; align-items: center; justify-content: space-between; }
+        .test-btn { background: #e67e22; color: #fff; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #log-area { color: #2ecc71; font-family: monospace; white-space: nowrap; overflow: hidden; }
+
+        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        #overlay h1 { font-size: 50px; border: 5px solid #ff9500; padding: 40px; border-radius: 20px; color:#ff9500; animation: blink 2s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="overlay" onclick="startApp()">
+        <h1>🔊 [ 請按這裡 ] 啟動永久廣播</h1>
+    </div>
+
+    <div class="header">
+        <div style="display:flex; align-items:center;">
+            <img src="/static/images/sch_pickup_banner_wide.png" style="height: 60px; margin-right: 15px; border-radius: 8px;">
+            <div class="school-name">🏥 智慧校園接送同步看板</div>
+        </div>
+        <div id="clock" style="font-size: 26px; color: #888;">正在對時...</div>
+    </div>
+
+    <div id="latest-notify" class="latest-box" style="display:none;">
+        <span id="latest-msg">---</span>
+    </div>
+
+    <div id="content-area"></div>
+
+    <div id="debug-panel">
+        <div style="display:flex; align-items:center;">
+            <button class="test-btn" onclick="testSound()">🔔 測試</button>
+            <div id="log-area" style="margin-left:10px;">狀態: 等待系統喚醒...</div>
+        </div>
+        <div id="heart-rate" style="color:#444;">💓 對接中</div>
+    </div>
+
+    <script>
+        let lastParentTime = "";
+        let isStarted = false;
+        let speakQueue = [];
+        let isSpeaking = false;
+
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('log-area').innerText = msg;
+        }
+
+        function startApp() {
+            if (isStarted) return;
+            isStarted = true;
+            document.getElementById('overlay').style.display = 'none';
+            log("🚀 語音核心已喚醒");
+            testSound();
+            fetchData();
+        }
+
+        function testSound() {
+            speak("廣播測試成功。");
+        }
+
+        function speak(text) {
+            if (!isStarted || !text) return;
+            
+            log("準備廣播: " + text);
+            const utter = new SpeechSynthesisUtterance(text);
+            const voices = window.speechSynthesis.getVoices();
+            const preferred = voices.find(v => v.name.includes("Xiaoxiao")) || voices.find(v => v.lang.includes("zh-TW")) || voices[0];
+            if (preferred) utter.voice = preferred;
+            utter.lang = 'zh-TW';
+            utter.rate = 1.0;
+            
+            utter.onstart = () => { isSpeaking = true; log("🔊 正在發聲: " + text); };
+            utter.onend = () => { isSpeaking = false; log("✓ 播報完畢"); processQueue(); };
+            utter.onerror = (e) => { isSpeaking = false; log("✕ 出錯: " + e.error); processQueue(); };
+
+            speakQueue.push(utter);
+            processQueue();
+        }
+
+        function processQueue() {
+            if (isSpeaking || speakQueue.length === 0) return;
+            // 關鍵：強迫引擎醒過來
+            window.speechSynthesis.resume();
+            
+            const nextUtter = speakQueue.shift();
+            // 在每一聲之前都先 cancel，防止 Chrome 快照卡死，這對「第二聲」很重要
+            window.speechSynthesis.cancel();
+            
+            // 延遲一點點再 speak，讓 cancel 徹底生效
+            setTimeout(() => {
+                window.speechSynthesis.speak(nextUtter);
+            }, 50);
+        }
+
+        async function fetchData() {
+            try {
+                const apiUrl = window.location.pathname.includes('/pickup') ? '/pickup/api/poll' : '/api/poll';
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                document.getElementById('clock').innerText = "🕒 " + data.now;
+
+                const history = data.history.filter(item => item.class !== 'type-thanks');
+                if (history.length > 0) {
+                    renderTable(history);
+                    const first = history[0];
+                    // 改用包含「秒」的 Time，確保 ID 唯一
+                    const rid = first.name + "_" + first.time;
+
+                    if (rid !== lastParentTime) {
+                        log("🔥 偵測到新訊息: " + rid);
+                        if (first.speech_text) speak(first.speech_text);
+                        lastParentTime = rid;
+                        
+                        if (first.class === 'type-arrived') {
+                            document.getElementById('latest-notify').style.display = 'block';
+                            document.getElementById('latest-msg').innerText = "📢 " + first.name + " 已抵達！";
+                        } else {
+                            document.getElementById('latest-notify').style.display = 'none';
+                        }
+                    }
+                } else {
+                    document.getElementById('content-area').innerHTML = '<div style="text-align:center;padding:100px;font-size:35px;color:#333;">目前環境靜悄悄...</div>';
+                    document.getElementById('latest-notify').style.display = 'none';
+                }
+            } catch (err) { log("✕ 連線異常: " + err.message); }
+        }
+
+        function renderTable(history) {
+            let html = `<table><tbody>`;
+            history.forEach(item => {
+                const tagClass = (item.class === 'type-arrived') ? 'tag-arrived' : 'tag-soon';
+                html += `<tr><td class="name">${item.name}</td><td style="text-align:right;"><span class="status-tag ${tagClass}">${item.status}</span></td></tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('content-area').innerHTML = html;
+        }
+
+        // --- 強力保活機制 (每 15 秒執行一次) ---
+        setInterval(() => {
+            if (isStarted) {
+                window.speechSynthesis.resume();
+                document.getElementById('heart-rate').innerText = "💓 跳動中: " + new Date().getSeconds();
+            }
+        }, 15000);
+
+        setInterval(fetchData, 3000);
+    </script>
+</body>
+</html>

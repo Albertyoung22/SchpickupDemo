@@ -70,8 +70,8 @@ def ws_web_handler(ws):
         logger.info(f"🔌 [WS-斷線] Web 端已離線")
 
 # Config from Env Vars (CRITICAL CHECK)
-CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '9825dc29feb8522d4fc1e273411d8f37')
-CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'q7yFoNUKHDPZZfo25zCWWEBUWhayXbnrysiE3w+xZMzHNXMJdeNJf8TpEFam3zNBLpTFgj7dLBPUGK7hrAdcf6DRKL7iDZh8b07n0rCFuypHdIYQ/s2kEHo1X+JnFIMbdSArXv/PylVkuBXpdrTQCgdB04t89/1O/w1cDnyilFU=')
+CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '9825dc29feb8522d4fc1e273411d8f37').strip()
+CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'q7yFoNUKHDPZZfo25zCWWEBUWhayXbnrysiE3w+xZMzHNXMJdeNJf8TpEFam3zNBLpTFgj7dLBPUGK7hrAdcf6DRKL7iDZh8b07n0rCFuypHdIYQ/s2kEHo1X+JnFIMbdSArXv/PylVkuBXpdrTQCgdB04t89/1O/w1cDnyilFU=').strip()
 
 if not CHANNEL_ACCESS_TOKEN:
     logger.critical("❌ [FATAL] LINE_CHANNEL_ACCESS_TOKEN 尚未設定！請至 Render 後台環境變數設定。指令回覆將失效。")

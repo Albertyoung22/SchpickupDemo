@@ -219,6 +219,12 @@ def handle_message(event):
         line_reply(event.reply_token, HELP_TEXT)
         return
 
+    # Contact School
+    if "聯絡" in msg_text or "電話" in msg_text:
+        school_phone = "02-1234-5678"
+        line_reply(event.reply_token, f"📞 學校官方聯絡電話：\n{school_phone}\n\n(點擊號碼後即可直接撥號聯繫學校櫃台。)")
+        return
+
     # 2. Check Registration
     if user_id not in PARENTS_DB:
         logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
@@ -233,6 +239,8 @@ def handle_message(event):
         s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
     elif "即將到達" in msg_text:
         s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
+    elif "會晚點到" in msg_text:
+        s_text, s_label, s_class = "會晚一點點到達，請耐心等候。", "會晚點到", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text:
          s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
 

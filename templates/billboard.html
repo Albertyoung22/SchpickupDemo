@@ -55,10 +55,12 @@
         let isStarted = false;
         let speakQueue = [];
         let isSpeaking = false;
+        let currentAudio = null;
 
         function log(msg) {
             console.log(msg);
-            document.getElementById('log-area').innerText = msg;
+            const area = document.getElementById('log-area');
+            if (area) area.innerText = msg;
         }
 
         function startApp() {
@@ -71,21 +73,47 @@
         }
 
         function testSound() {
-            speak("廣播測試成功。");
+            speak("系統語音連線成功，準備接待家長。", null);
         }
 
-        function speak(text) {
-            if (!isStarted || !text) return;
+        function speak(text, audioUrl) {
+            if (!isStarted) return;
             
-            log("準備廣播: " + text);
+            // 優先嘗試播放 Edge TTS 預產生的音檔
+            if (audioUrl) {
+                const fullUrl = audioUrl.startsWith('http') ? audioUrl : (window.location.origin + (audioUrl.startsWith('/') ? '' : '/') + audioUrl);
+                log("🔊 正在播放 Edge TTS: " + text);
+                
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio = null;
+                }
+
+                currentAudio = new Audio(fullUrl);
+                currentAudio.play().then(() => {
+                    log("✅ 播放成功: " + text);
+                }).catch(e => {
+                    log("⚠️ 音檔播放失敗，切換備援語音");
+                    fallbackSpeak(text);
+                });
+                return;
+            }
+
+            // 如果沒有音檔，才使用瀏覽器內建語音
+            fallbackSpeak(text);
+        }
+
+        function fallbackSpeak(text) {
+            if (!text) return;
+            log("準備備援廣播: " + text);
             const utter = new SpeechSynthesisUtterance(text);
             const voices = window.speechSynthesis.getVoices();
-            const preferred = voices.find(v => v.name.includes("Xiaoxiao")) || voices.find(v => v.lang.includes("zh-TW")) || voices[0];
+            const preferred = voices.find(v => v.name.includes("HsiaoChen") || v.name.includes("Xiaoxiao")) || voices.find(v => v.lang.includes("zh-TW")) || voices[0];
             if (preferred) utter.voice = preferred;
             utter.lang = 'zh-TW';
-            utter.rate = 1.0;
+            utter.rate = 1.1;
             
-            utter.onstart = () => { isSpeaking = true; log("🔊 正在發聲: " + text); };
+            utter.onstart = () => { isSpeaking = true; log("🔊 (備援)正在發聲: " + text); };
             utter.onend = () => { isSpeaking = false; log("✓ 播報完畢"); processQueue(); };
             utter.onerror = (e) => { isSpeaking = false; log("✕ 出錯: " + e.error); processQueue(); };
 
@@ -119,23 +147,23 @@
                 if (history.length > 0) {
                     renderTable(history);
                     const first = history[0];
-                    // 改用包含「秒」的 Time，確保 ID 唯一
                     const rid = first.name + "_" + first.time;
 
                     if (rid !== lastParentTime) {
-                        log("🔥 偵測到新訊息: " + rid);
-                        if (first.speech_text) speak(first.speech_text);
+                        log("🔥 偵測到新狀態: " + rid);
+                        // 帶入 audio_url 給 speak 函數
+                        speak(first.speech_text, first.audio_url);
                         lastParentTime = rid;
                         
                         if (first.class === 'type-arrived') {
                             document.getElementById('latest-notify').style.display = 'block';
-                            document.getElementById('latest-msg').innerText = "📢 " + first.name + " 已抵達！";
+                            document.getElementById('latest-msg').innerText = "📢 " + first.name + " 已抵達校門！";
                         } else {
                             document.getElementById('latest-notify').style.display = 'none';
                         }
                     }
                 } else {
-                    document.getElementById('content-area').innerHTML = '<div style="text-align:center;padding:100px;font-size:35px;color:#333;">目前環境靜悄悄...</div>';
+                    document.getElementById('content-area').innerHTML = '<div style="text-align:center;padding:100px;font-size:35px;color:#338;">☕ 目前暫無學生出發...</div>';
                     document.getElementById('latest-notify').style.display = 'none';
                 }
             } catch (err) { log("✕ 連線異常: " + err.message); }

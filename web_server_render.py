@@ -173,18 +173,38 @@ def handle_message(event):
             except Exception as e:
                 logger.error(f"Failed to reply via LINE: {e}")
 
-    # Registration Handling
+    # --- 智慧註冊導引與注意事項 ---
+    HELP_TEXT = (
+        "🛑 【重要通知：您尚未完成註冊】\n\n"
+        "在使用接送廣播功能前，請務必先完成註冊：\n"
+        "--------------------------\n"
+        "✍️ 註冊方式：直接回覆 #名字\n"
+        "範例：#三年二班王小明爸爸\n"
+        "--------------------------\n\n"
+        "⚠️ 【使用注意事項】：\n"
+        "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
+        "2. 一個 LINE 帳號僅能綁定一位學生姓名，若有異動請重新輸入註冊指令。\n"
+        "3. 請確保網路收訊良好，避免訊息延遲造成接送困擾。\n"
+        "4. 如有任何註冊問題，請聯繫學校教務處 (02-1234-5678)。"
+    )
+
+    # 1. Registration Handling
     if msg_text.startswith("#") or msg_text.startswith("＃"):
         new_name = msg_text[1:].strip()
         if new_name:
             PARENTS_DB[user_id] = new_name
             save_parents_db()
-            reply(f"🎉 註冊成功！暱稱為：【{new_name}】")
+            reply(f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
 
-    # Check Registration
+    # Help command
+    if msg_text in ["幫助", "註冊", "？", "?", "選單"]:
+        reply(HELP_TEXT)
+        return
+
+    # 2. Check Registration
     if user_id not in PARENTS_DB:
-        reply("⚠️ 請先回覆 #名字 進行註冊。")
+        reply(HELP_TEXT)
         return
 
     # Process Broadcast Message

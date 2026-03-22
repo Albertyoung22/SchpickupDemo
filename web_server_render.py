@@ -69,15 +69,21 @@ def ws_web_handler(ws):
                 WEB_WS_CLIENTS.remove(ws)
         logger.info(f"🔌 [WS-斷線] Web 端已離線")
 
-# Config from Env Vars
+# Config from Env Vars (CRITICAL CHECK)
 CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', '9825dc29feb8522d4fc1e273411d8f37')
-CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', '')
+CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'q7yFoNUKHDPZZfo25zCWWEBUWhayXbnrysiE3w+xZMzHNXMJdeNJf8TpEFam3zNBLpTFgj7dLBPUGK7hrAdcf6DRKL7iDZh8b07n0rCFuypHdIYQ/s2kEHo1X+JnFIMbdSArXv/PylVkuBXpdrTQCgdB04t89/1O/w1cDnyilFU=')
+
+if not CHANNEL_ACCESS_TOKEN:
+    logger.critical("❌ [FATAL] LINE_CHANNEL_ACCESS_TOKEN 尚未設定！請至 Render 後台環境變數設定。指令回覆將失效。")
+
 handler = WebhookHandler(CHANNEL_SECRET)
 
 # Audio directory (absolute path)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "static", "audio")
-if not os.path.exists(AUDIO_DIR): os.makedirs(AUDIO_DIR)
+if not os.path.exists(AUDIO_DIR):
+    os.makedirs(AUDIO_DIR)
+    logger.info(f"📁 Created audio dir: {AUDIO_DIR}")
 
 VOICE_CODE = "zh-TW-HsiaoChenNeural" # Default: HsiaoChen
 VOICE_RATE = "+0%"
@@ -85,8 +91,9 @@ VOICE_VOLUME = "+0%"
 
 speech_queue = queue.Queue()
 
-# --- Database & History ---
-PARENTS_FILE = "parents.json"
+# --- Database & History (Persistent) ---
+PARENTS_FILE = os.path.join(BASE_DIR, "parents.json")
+HISTORY_FILE = os.path.join(BASE_DIR, "history.json")
 PARENTS_DB = {}
 pickup_history = []
 
@@ -136,10 +143,31 @@ def save_parents_db():
     try:
         with open(PARENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
+        logger.info(f"💾 Saved parents DB to {PARENTS_FILE}")
     except Exception as e:
         logger.error(f"Error saving {PARENTS_FILE}: {e}")
 
+def load_history():
+    global pickup_history
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                pickup_history = json.load(f)
+            logger.info(f"📂 Loaded history ({len(pickup_history)} records)")
+        except Exception as e:
+            logger.error(f"Error loading {HISTORY_FILE}: {e}")
+            pickup_history = []
+    else: pickup_history = []
+
+def save_history():
+    try:
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(pickup_history, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving {HISTORY_FILE}: {e}")
+
 load_parents_db()
+load_history()
 
 # --- Speech worker thread (Generates MP3 for clients) ---
 async def generate_speech(text, v, r, vol, audio_path):
@@ -331,6 +359,7 @@ def handle_message(event):
     # Store in history
     pickup_history.insert(0, entry)
     if len(pickup_history) > 30: pickup_history.pop()
+    save_history() # Persist to disk
     
     # Queue audio generation
     speech_queue.put((f"{parent_name} {s_text}", audio_full_path))

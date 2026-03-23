@@ -168,6 +168,37 @@ class DesktopAPI:
 desktop_api = DesktopAPI()
 
 # --- Web Routes ---
+@app.route('/api/tts_preview', methods=['POST'])
+def api_tts_preview():
+    import io, asyncio
+    try:
+        d = request.json or {}
+        text = d.get('text')
+        if not text:
+            return jsonify(ok=False, error="No text"), 400
+
+        async def _gen():
+            # Use module's current_voice and current_rate
+            tts = edge_tts.Communicate(text, current_voice, rate=current_rate)
+            out = io.BytesIO()
+            async for chunk in tts.stream():
+                if chunk["type"] == "audio":
+                    out.write(chunk["data"])
+            out.seek(0)
+            return out
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            audio_io = loop.run_until_complete(_gen())
+        finally:
+            loop.close()
+            
+        return send_file(audio_io, mimetype="audio/mpeg", as_attachment=False, download_name="preview.mp3")
+    except Exception as e:
+        logger.error(f"[TTS_PREVIEW] Error: {e}")
+        return jsonify(ok=False, error=str(e)), 500
+
 @app.route("/", methods=['GET'])
 def index():
     return jsonify({"status": "running", "uptime": str(datetime.datetime.now())}), 200

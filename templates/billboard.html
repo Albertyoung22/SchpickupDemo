@@ -261,6 +261,7 @@
         let textQueue = [];
         let isSpeaking = false;
         let audioUnlocked = false;
+        let audioPlayer = document.createElement("audio"); // 隱藏播放器
 
         function showGestureBtn() {
             if (audioUnlocked || document.getElementById('play-gesture-btn')) return;
@@ -269,8 +270,9 @@
             btn.className = 'play-gesture-btn';
             btn.textContent = "🔊 點擊解鎖背景語音";
             btn.onclick = () => { 
-                const msg = new SpeechSynthesisUtterance("");
-                window.speechSynthesis.speak(msg);
+                // Play silent audio to unlock AudioContext
+                audioPlayer.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+                audioPlayer.play().catch(e => console.warn(e));
                 audioUnlocked = true; 
                 btn.remove(); 
                 speakNext(); 
@@ -278,26 +280,41 @@
             document.body.appendChild(btn);
         }
 
-        function speakNext() {
+        async function speakNext() {
             if (isSpeaking || textQueue.length === 0 || !audioUnlocked) return;
             isSpeaking = true;
             
             const text = textQueue.shift();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-TW';
             
-            utterance.onend = () => {
+            try {
+                // 向後端請求 Edge TTS 音源
+                const res = await fetch("/api/tts_preview", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!res.ok) throw new Error("TTS Request Failed");
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                
+                audioPlayer.src = url;
+                audioPlayer.onended = () => {
+                    URL.revokeObjectURL(url);
+                    isSpeaking = false;
+                    setTimeout(speakNext, 100);
+                };
+                audioPlayer.onerror = () => {
+                    isSpeaking = false;
+                    setTimeout(speakNext, 100);
+                };
+                await audioPlayer.play();
+            } catch (err) {
+                console.error("Speech error", err);
                 isSpeaking = false;
                 setTimeout(speakNext, 100);
-            };
-            
-            utterance.onerror = (e) => {
-                console.error("Speech error", e);
-                isSpeaking = false;
-                setTimeout(speakNext, 100);
-            };
-            
-            window.speechSynthesis.speak(utterance);
+            }
         }
 
         function updateClock() {

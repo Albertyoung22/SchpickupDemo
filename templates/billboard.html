@@ -3,12 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📢 學生接送即時看板</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>📢 校園接送即時看板</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f0f9ff;
+            --bg: #f8fafc;
             --text: #0f172a;
             --primary: #0284c7;
             --danger: #ef4444;
@@ -20,185 +20,145 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
             background: var(--bg);
-            background-image: radial-gradient(circle at 50% 50%, #f0f9ff 0%, #e0f2fe 100%);
+            background-image: radial-gradient(circle at top right, #e0f2fe 0%, #f8fafc 100%);
             color: var(--text);
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
+        /* 頂部標題與時間 (Glassmorphism) */
         header {
-            padding: 3vh 6vw;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid #e2e8f0;
+            padding: 20px 5%;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.9);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
         .title {
-            font-size: 5vh;
+            font-size: clamp(1.4rem, 4vw, 2.5rem);
             font-weight: 900;
-            color: #0369a1;
-            letter-spacing: -1px;
+            background: linear-gradient(135deg, #0369a1, #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
 
         .clock {
-            font-size: 7vh;
+            font-size: clamp(1.4rem, 5vw, 3rem);
             font-weight: 900;
             color: var(--primary);
             font-variant-numeric: tabular-nums;
+            text-shadow: 0 2px 15px rgba(2, 132, 199, 0.15);
         }
 
+        /* 主內容區 */
         .billboard-container {
             flex: 1;
-            padding: 3vh 6vw;
+            padding: 20px 5%;
             display: flex;
             flex-direction: column;
-            gap: 2.5vh;
-            overflow-y: hidden;
+            gap: 16px;
+            overflow-y: auto;
         }
 
+        /* 單筆廣播卡片 */
         .row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 4vh 6vw;
-            background: #ffffff;
-            border-radius: 3vh;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-            border-left: 25px solid #cbd5e1;
-            animation: slideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            border-left: 12px solid #cbd5e1;
+            animation: slideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
             position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .row:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
         }
 
         @keyframes slideIn {
-            from {
-                transform: translateX(-50px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(-30px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        .row.type-arrived {
-            border-left-color: var(--danger);
-            background: #fff1f2;
-        }
-
-        .row.type-soon {
-            border-left-color: var(--warning);
-            background: #fffbeb;
-        }
-
-        .row.type-thanks {
-            border-left-color: var(--success);
-            background: #f0fdf4;
-        }
+        /* 顏色主題 */
+        .row.type-arrived { border-left-color: var(--danger); background: linear-gradient(90deg, #fff1f2 0%, rgba(255,255,255,0.95) 100%); }
+        .row.type-soon { border-left-color: var(--warning); background: linear-gradient(90deg, #fffbeb 0%, rgba(255,255,255,0.95) 100%); }
+        .row.type-thanks { border-left-color: var(--success); background: linear-gradient(90deg, #f0fdf4 0%, rgba(255,255,255,0.95) 100%); }
 
         .student-info {
             display: flex;
             align-items: center;
-            gap: 5vw;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
         .student-name {
-            font-size: 11vh;
+            font-size: clamp(1.6rem, 5vw, 3.5rem);
             font-weight: 900;
             color: #1e293b;
         }
 
         .status-badge {
-            font-size: 6vh;
-            padding: 1.5vh 4vw;
-            border-radius: 2vh;
+            font-size: clamp(1rem, 3vw, 2rem);
+            padding: 8px 24px;
+            border-radius: 14px;
             font-weight: 900;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
+            white-space: nowrap;
         }
 
-        .row.type-arrived .status-badge {
-            color: #fff;
-            background: var(--danger);
-            box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.4);
-        }
-
-        .row.type-soon .status-badge {
-            color: #fff;
-            background: var(--warning);
-            box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
-        }
-
-        .row.type-thanks .status-badge {
-            color: #fff;
-            background: var(--success);
-            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
-        }
+        .row.type-arrived .status-badge { color: #fff; background: var(--danger); box-shadow: 0 8px 15px -3px rgba(239, 68, 68, 0.3); }
+        .row.type-soon .status-badge { color: #fff; background: var(--warning); box-shadow: 0 8px 15px -3px rgba(245, 158, 11, 0.3); }
+        .row.type-thanks .status-badge { color: #fff; background: var(--success); box-shadow: 0 8px 15px -3px rgba(16, 185, 129, 0.3); }
 
         .arrival-time {
-            font-size: 6vh;
+            font-size: clamp(1.2rem, 3.5vw, 2.2rem);
             font-weight: 700;
             color: #94a3b8;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
-        /* Newest Highlight */
+        /* 最新的特別突顯 */
         .row:first-child {
             z-index: 10;
-            transform: scale(1.03);
-            box-shadow: 0 25px 40px -10px rgba(0, 0, 0, 0.1);
+            border-width: 16px;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+            transform: scale(1.01);
         }
 
         .row:first-child.type-arrived {
-            animation: glowRed 1.5s infinite ease-in-out;
+            animation: slideIn 0.5s ease forwards, glowRed 2s infinite ease-in-out;
         }
 
         @keyframes glowRed {
-            0% {
-                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-            }
-
-            50% {
-                box-shadow: 0 0 60px rgba(239, 68, 68, 0.5);
-            }
-
-            100% {
-                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-            }
-        }
-
-        .audio-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(10px);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            cursor: pointer;
-            transition: opacity 0.4s ease;
-        }
-
-        .audio-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .audio-overlay span {
-            font-size: 8vh;
-            font-weight: 900;
+            0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
+            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.4); }
+            100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
         }
 
         .no-data {
@@ -207,19 +167,86 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 7vh;
+            font-size: clamp(1.3rem, 4vw, 2.5rem);
             color: #94a3b8;
             font-weight: 700;
-            gap: 2vh;
+            gap: 15px;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        /* 🔊 語音按鈕 - Responsive */
+        .play-gesture-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 10000;
+            padding: 16px 28px;
+            font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+            font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #0ea5e9, #10b981);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+            font-weight: 900;
+            cursor: pointer;
+            animation: bounceBtn 2s infinite;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .play-gesture-btn:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes bounceBtn {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* RWD 手機版特化設定 */
+        @media (max-width: 640px) {
+            header {
+                padding: 15px 20px;
+            }
+            .billboard-container {
+                padding: 15px 20px;
+            }
+            .row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 20px;
+                border-left-width: 8px;
+                border-radius: 16px;
+            }
+            .student-info {
+                gap: 12px;
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+            .arrival-time {
+                align-self: flex-end;
+                font-size: 1.1rem;
+                margin-top: -15px;
+                color: #64748b;
+            }
+            .row:first-child {
+                border-width: 10px;
+                transform: scale(1);
+            }
+            .play-gesture-btn {
+                bottom: 25px;
+                right: 25px;
+                padding: 14px 24px;
+                border-radius: 16px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div id="audioUnlock" class="audio-overlay" onclick="unlockAudio()">
-        <span>🔊 點擊任意處開始啟用語音播報</span>
-    </div>
-
     <header>
         <div class="title">CAMPUS PICKUP LIVE</div>
         <div id="clock" class="clock">00:00:00</div>
@@ -231,55 +258,46 @@
 
     <script>
         let lastHistoryHash = "";
-        let audioQueue = [];
-        let isPlaying = false;
+        let textQueue = [];
+        let isSpeaking = false;
         let audioUnlocked = false;
 
-        function unlockAudio() {
-            if (audioUnlocked) return;
-            // Play a silent audio or empty sound to unlock context
-            const silentAudio = new Audio();
-            silentAudio.src = "data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqy=";
-            silentAudio.play().catch(e => console.log(e));
-            audioUnlocked = true;
-            document.getElementById('audioUnlock').classList.add('hidden');
+        function showGestureBtn() {
+            if (audioUnlocked || document.getElementById('play-gesture-btn')) return;
+            const btn = document.createElement('button');
+            btn.id = 'play-gesture-btn';
+            btn.className = 'play-gesture-btn';
+            btn.textContent = "🔊 點擊解鎖背景語音";
+            btn.onclick = () => { 
+                const msg = new SpeechSynthesisUtterance("");
+                window.speechSynthesis.speak(msg);
+                audioUnlocked = true; 
+                btn.remove(); 
+                speakNext(); 
+            };
+            document.body.appendChild(btn);
         }
 
-        // Wait to ensure audio URL is accessible (max retries)
-        async function checkAudioReady(url, retries = 5, delay = 1000) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const res = await fetch(url, { method: 'HEAD' });
-                    if (res.ok) return true;
-                } catch (e) { }
-                await new Promise(r => setTimeout(r, delay));
-            }
-            return false;
-        }
-
-        async function playAudio(url) {
-            return new Promise((resolve) => {
-                const audio = new Audio(url);
-                audio.onended = resolve;
-                audio.onerror = resolve;
-                audio.play().catch(e => {
-                    console.error("Audio block:", e);
-                    resolve();
-                });
-            });
-        }
-
-        async function processAudioQueue() {
-            if (isPlaying || audioQueue.length === 0) return;
-            isPlaying = true;
-            while (audioQueue.length > 0) {
-                const url = audioQueue.shift();
-                const isReady = await checkAudioReady(url, 10, 1000); // give TTS some time to generate
-                if (isReady && audioUnlocked) {
-                    await playAudio(url);
-                }
-            }
-            isPlaying = false;
+        function speakNext() {
+            if (isSpeaking || textQueue.length === 0 || !audioUnlocked) return;
+            isSpeaking = true;
+            
+            const text = textQueue.shift();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            
+            utterance.onend = () => {
+                isSpeaking = false;
+                setTimeout(speakNext, 100);
+            };
+            
+            utterance.onerror = (e) => {
+                console.error("Speech error", e);
+                isSpeaking = false;
+                setTimeout(speakNext, 100);
+            };
+            
+            window.speechSynthesis.speak(utterance);
         }
 
         function updateClock() {
@@ -296,16 +314,22 @@
                 const currentHash = JSON.stringify(data.history);
                 if (currentHash === lastHistoryHash) return;
                 
-                // Diff and push audio to queue
+                // Diff and push text to queue
                 if (lastHistoryHash !== "") {
                     const oldObj = JSON.parse(lastHistoryHash);
                     const oldKeys = new Set(oldObj.map(x => x.name + x.time));
                     const newItems = data.history.filter(x => !oldKeys.has(x.name + x.time)).reverse();
                     
                     for (let item of newItems) {
-                        if (item.audio_url) audioQueue.push(item.audio_url);
+                        if (item.speech_text) {
+                            textQueue.push(item.speech_text);
+                        }
                     }
-                    processAudioQueue();
+                    if (textQueue.length > 0 && !audioUnlocked) {
+                        showGestureBtn();
+                    } else if (textQueue.length > 0 && audioUnlocked) {
+                        speakNext();
+                    }
                 }
 
                 lastHistoryHash = currentHash;

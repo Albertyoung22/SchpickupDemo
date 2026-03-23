@@ -1,282 +1,464 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 
 <head>
-    <title>📋 導護老師監控控制台</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏫 學生接送智慧監控中心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            background-color: #f0f2f5;
+        :root {
+            --primary: #0ea5e9;
+            --primary-hover: #0284c7;
+            --bg: #f8fafc;
+            /* Cool White */
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            /* Slate 900 */
+            --text-muted: #64748b;
+            /* Slate 500 */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --border: #e2e8f0;
+        }
+
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: auto;
-            background: #fff;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        body {
+            font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg);
+            background-image: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: var(--text);
+            min-height: 100vh;
         }
 
-        .header {
+        .layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2.5rem;
+        }
+
+        header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
         }
 
         h1 {
-            margin: 0;
-            color: #1a73e8;
-        }
-
-        .timer {
-            font-weight: bold;
-            color: #666;
-            font-size: 1.2rem;
-        }
-
-        /* Settings Panel */
-        .settings-panel {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .settings-row {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-
-        .settings-row label {
-            font-weight: bold;
-            min-width: 80px;
-        }
-
-        .settings-btn {
-            background: #666;
-            color: white;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            float: right;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: #f8f9fa;
-            padding: 15px;
-            text-align: left;
-            border-bottom: 2px solid #eee;
-            color: #555;
-        }
-
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0284c7;
+            letter-spacing: -0.025em;
         }
 
         .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            display: inline-block;
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbfc7;
+            font-weight: 600;
         }
 
-        .type-arrived {
-            background-color: #ffeeee;
-            color: #d32f2f;
-        }
-
-        .type-soon {
-            background-color: #fff3e0;
-            color: #e65100;
-        }
-
-        .type-thanks {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .action-btn {
-            background: #34a853;
+        .btn {
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);
         }
 
-        .action-btn:hover {
-            background: #2d8e47;
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            color: var(--text);
             transform: translateY(-1px);
         }
 
-        .empty-hint {
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1.25rem;
+            padding: 1.75rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+            border-color: var(--primary);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 1.75rem;
+            left: 0;
+            width: 6px;
+            height: 2.5rem;
+            border-radius: 0 4px 4px 0;
+            background: var(--text-muted);
+        }
+
+        .card.type-arrived::before {
+            background: var(--danger);
+        }
+
+        .card.type-soon::before {
+            background: var(--warning);
+        }
+
+        .card.type-thanks::before {
+            background: var(--success);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.25rem;
+        }
+
+        .parent-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .time {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .status-text {
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            display: inline-block;
+        }
+
+        .type-arrived .status-text {
+            background: #fef2f2;
+            color: var(--danger);
+        }
+
+        .type-soon .status-text {
+            background: #fffbeb;
+            color: var(--warning);
+        }
+
+        .type-thanks .status-text {
+            background: #f0fdf4;
+            color: var(--success);
+        }
+
+        /* Modal Settings */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 3rem;
+            border-radius: 2rem;
+            width: 90%;
+            max-width: 550px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.95);
+            animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes scaleUp {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.75rem;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            background: #f8fafc;
+            border: 2px solid #f1f5f9;
+            color: var(--text);
+            padding: 1rem;
+            border-radius: 1rem;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            height: 8px;
+            border-radius: 4px;
+            accent-color: var(--primary);
+        }
+
+        .range-val {
+            text-align: right;
+            font-size: 1rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
             text-align: center;
-            color: #999;
-            padding: 50px;
+            padding: 6rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2rem;
+            border: 3px dashed #e2e8f0;
+            font-size: 1.25rem;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <div style="display:flex; align-items:center;">
-                <img src="/static/images/sch_pickup_banner_wide.png"
-                    style="height: 40px; margin-right: 12px; border-radius: 5px;" onerror="this.style.display='none'">
-                <h1>🏫 導護現場監控台</h1>
-            </div>
+    <div class="layout">
+        <header>
             <div>
-                <span class="timer" id="clock">---</span>
-                <button class="settings-btn" onclick="toggleSettings()">⚙️ 設定</button>
+                <h1>🏫 智慧接送監控中心</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.3rem; font-weight: 500;">
+                    最後更新: <span id="last-update" style="color: var(--primary);">{{ now }}</span>
+                </p>
             </div>
-        </div>
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="openSettings()"
+                    style="display: flex; align-items: center; gap: 0.5rem;">
+                    ⚙️ 系統設定
+                </button>
+            </div>
+        </header>
 
-        <div id="settings" class="settings-panel">
-            <div style="display:flex; justify-content: space-between;">
-                <h3>⚙️ 廣播參數設定</h3>
-                <span id="parent-count" style="color:#1a73e8; font-weight:bold;">已註冊家長：-- 位</span>
-            </div>
-            <div class="settings-row">
-                <label>播報角色</label>
-                <select id="voice-select" onchange="saveSettings()"></select>
-                <label style="margin-left: 20px;">本地播放</label>
-                <input type="checkbox" id="local-play" onchange="saveSettings()">
-            </div>
-            <div class="settings-row">
-                <label>速度 (Rate)</label>
-                <input type="range" id="rate-range" min="-50" max="100" value="0"
-                    oninput="updateRangeLabel('rate', this.value)" onchange="saveSettings()">
-                <span id="rate-label">+0%</span>
-            </div>
-            <div class="settings-row">
-                <label>音量 (Vol)</label>
-                <input type="range" id="vol-range" min="-50" max="100" value="0"
-                    oninput="updateRangeLabel('vol', this.value)" onchange="saveSettings()">
-                <span id="vol-label">+0%</span>
-            </div>
+        <div id="history-container" class="history-grid">
+            <div class="empty-state">⏳ 正在同步接送資料...</div>
         </div>
+    </div>
 
-        <div id="content-area">
-            <div class="empty-hint">連線中...</div>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>系統偏好設定</h2>
+                <button class="btn-secondary" onclick="closeSettings()"
+                    style="border:none; background:none; font-size: 1.5rem; cursor:pointer;">✕</button>
+            </div>
+
+            <div class="form-group">
+                <label>系統播報語音</label>
+                <select id="voice-select"></select>
+            </div>
+
+            <div class="form-group">
+                <label>播報語速</label>
+                <input type="range" id="rate-range" min="-50" max="50" step="10" value="0">
+                <div id="rate-val" class="range-val">+0%</div>
+            </div>
+
+            <div class="form-group">
+                <label>播報音量</label>
+                <input type="range" id="volume-range" min="-50" max="50" step="10" value="0">
+                <div id="volume-val" class="range-val">+0%</div>
+            </div>
+
+            <div class="form-group"
+                style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8fafc; border-radius: 1rem;">
+                <input type="checkbox" id="local-play-check" checked
+                    style="width: 1.5rem; height: 1.5rem; accent-color: var(--primary);">
+                <label for="local-play-check" style="margin: 0; cursor:pointer;">啟用校園音響同步播放 (Local MPV)</label>
+            </div>
+
+            <div style="display: flex; gap: 1.25rem; margin-top: 3rem;">
+                <button class="btn" style="flex: 2;" onclick="saveSettings()">儲存並套用</button>
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeSettings()">取消</button>
+            </div>
         </div>
     </div>
 
     <script>
-        function toggleSettings() {
-            const panel = document.getElementById('settings');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-            if (panel.style.display === 'block') loadSettings();
-        }
+        let currentHistory = [];
 
-        function updateRangeLabel(id, val) {
-            const txt = (val >= 0 ? "+" : "") + val + "%";
-            document.getElementById(id + "-label").innerText = txt;
-        }
-
-        async function loadSettings() {
-            if (window.pywebview && window.pywebview.api) {
-                const s = await window.pywebview.api.get_settings();
-                const sel = document.getElementById('voice-select');
-                sel.innerHTML = '';
-                for (const [name, code] of Object.entries(s.voice_options)) {
-                    const opt = document.createElement('option');
-                    opt.value = code;
-                    opt.text = name;
-                    if (code === s.voice) opt.selected = true;
-                    sel.appendChild(opt);
-                }
-                document.getElementById('local-play').checked = s.local_play;
-                document.getElementById('rate-range').value = parseInt(s.rate);
-                document.getElementById('vol-range').value = parseInt(s.volume);
-                updateRangeLabel('rate', s.rate);
-                updateRangeLabel('vol', s.volume);
-                document.getElementById('parent-count').innerText = "已註冊家長：" + s.parent_count + " 位";
-            }
-        }
-
-        async function saveSettings() {
-            if (window.pywebview && window.pywebview.api) {
-                const settings = {
-                    voice: document.getElementById('voice-select').value,
-                    local_play: document.getElementById('local-play').checked,
-                    rate: (parseInt(document.getElementById('rate-range').value) >= 0 ? "+" : "") + document.getElementById('rate-range').value + "%",
-                    volume: (parseInt(document.getElementById('vol-range').value) >= 0 ? "+" : "") + document.getElementById('vol-range').value + "%"
-                };
-                await window.pywebview.api.update_settings(settings);
-            }
-        }
-
-        async function fetchData() {
+        async function pollData() {
             try {
-                const res = await fetch('/api/poll');
-                const data = await res.json();
-                document.getElementById('clock').innerText = "最後更新：" + data.now;
-                renderTable(data.history);
-                // Also update parent count if settings open
-                if (document.getElementById('settings').style.display === 'block') {
-                    loadSettings();
-                }
-            } catch (e) {
-                console.error("Dashboard Poll Error:", e);
-            }
+                const response = await fetch('/api/poll');
+                const data = await response.json();
+                updateUI(data.history, data.now);
+            } catch (err) { console.error('Polling error:', err); }
         }
 
-        async function clearParent(name) {
-            if (!confirm(`確定要將「${name}」從看板移除嗎？`)) return;
-            try {
-                const res = await fetch('/pickup/api/clear_parent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
-                });
-                if (res.ok) fetchData();
-            } catch (e) { alert("清除失敗"); }
-        }
+        function updateUI(history, now) {
+            const container = document.getElementById('history-container');
+            document.getElementById('last-update').innerText = now;
 
-        function renderTable(history) {
-            if (history.length === 0) {
-                document.getElementById('content-area').innerHTML = '<div class="empty-hint">目前暫無接送資料</div>';
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div class="empty-state">🍃 靜候接送訊息中...</div>';
                 return;
             }
 
-            let html = `<table><thead><tr><th>家長/學生</th><th>目前狀態</th><th>時間</th><th>管理操作</th></tr></thead><tbody>`;
-            history.forEach(item => {
-                html += `<tr>
-                    <td><strong>${item.name}</strong></td>
-                    <td><span class="status-badge ${item.class}">${item.status}</span></td>
-                    <td style="color:#888;">${item.time}</td>
-                    <td>
-                        <button class="action-btn" onclick="clearParent('${item.name}')">✅ 確認接走並移除</button>
-                    </td>
-                </tr>`;
-            });
-            html += `</tbody></table>`;
-            document.getElementById('content-area').innerHTML = html;
+            if (JSON.stringify(history) === JSON.stringify(currentHistory)) return;
+            currentHistory = history;
+
+            container.innerHTML = history.map(item => `
+                <div class="card ${item.class || ''}">
+                    <div class="card-header">
+                        <span class="parent-name">${item.name}</span>
+                        <span class="time">🕙 ${item.time}</span>
+                    </div>
+                    <div class="status-text">${item.status}</div>
+                </div>
+            `).join('');
         }
 
-        setInterval(fetchData, 4000);
-        fetchData();
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            loadSettingsFromAPI();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        async function loadSettingsFromAPI() {
+            if (window.pywebview && window.pywebview.api) {
+                const settings = await window.pywebview.api.get_settings();
+                const vSelect = document.getElementById('voice-select');
+                vSelect.innerHTML = Object.entries(settings.voice_options).map(([name, code]) =>
+                    `<option value="${code}" ${settings.voice === code ? 'selected' : ''}>${name}</option>`
+                ).join('');
+
+                const rate = parseInt(settings.rate.replace('%', ''));
+                const vol = parseInt(settings.volume.replace('%', ''));
+                document.getElementById('rate-range').value = rate;
+                document.getElementById('volume-range').value = vol;
+                updateRangeLabels();
+                document.getElementById('local-play-check').checked = settings.local_play;
+            }
+        }
+
+        function updateRangeLabels() {
+            const r = document.getElementById('rate-range').value;
+            const v = document.getElementById('volume-range').value;
+            document.getElementById('rate-val').innerText = (r >= 0 ? '+' : '') + r + '%';
+            document.getElementById('volume-val').innerText = (v >= 0 ? '+' : '') + v + '%';
+        }
+
+        async function saveSettings() {
+            const rate = document.getElementById('rate-range').value;
+            const vol = document.getElementById('volume-range').value;
+            const settings = {
+                voice: document.getElementById('voice-select').value,
+                rate: (rate >= 0 ? '+' : '') + rate + '%',
+                volume: (vol >= 0 ? '+' : '') + vol + '%',
+                local_play: document.getElementById('local-play-check').checked
+            };
+
+            if (window.pywebview && window.pywebview.api) {
+                await window.pywebview.api.update_settings(settings);
+                closeSettings();
+            }
+        }
+
+        document.getElementById('rate-range').oninput = updateRangeLabels;
+        document.getElementById('volume-range').oninput = updateRangeLabels;
+
+        setInterval(pollData, 3000);
+        pollData();
     </script>
 </body>
 

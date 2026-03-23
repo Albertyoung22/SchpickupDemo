@@ -1,216 +1,247 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>🚨 接送看板 (語音持久除錯版)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { background: #000; color: #fff; font-family: 'Microsoft JhengHei', sans-serif; margin: 0; padding: 10px; overflow: hidden; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 5px; }
-        .latest-box { background: #b71c1c; padding: 20px; border-radius: 10px; margin: 15px 0; text-align: center; font-size: 40px; border: 2px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-        table { width: 100%; border-collapse: collapse; }
-        .name { font-size: 80px; font-weight: 900; }
-        .status-tag { padding: 5px 30px; border-radius: 50px; font-size: 40px; font-weight: bold; }
-        .tag-arrived { background: #ff3b30; animation: pulse 1s infinite; }
-        .tag-soon { background: #ff9500; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0px #ff3b30; } 70% { box-shadow: 0 0 0 20px rgba(255,59,48,0); } 100% { box-shadow: 0 0 0 0px rgba(255,59,48,0); } }
-        
-        #debug-panel { position: fixed; bottom: 0; left: 0; width: 100%; background: #111; padding: 10px; font-size: 14px; border-top: 1px solid #333; display: flex; align-items: center; justify-content: space-between; }
-        .test-btn { background: #e67e22; color: #fff; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #log-area { color: #2ecc71; font-family: monospace; white-space: nowrap; overflow: hidden; }
+<html lang="zh-TW">
 
-        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-        #overlay h1 { font-size: 50px; border: 5px solid #ff9500; padding: 40px; border-radius: 20px; color:#ff9500; animation: blink 2s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📢 學生接送即時看板</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f0f9ff;
+            --text: #0f172a;
+            --primary: #0284c7;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 50%, #f0f9ff 0%, #e0f2fe 100%);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 3vh 6vw;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 5vh;
+            font-weight: 900;
+            color: #0369a1;
+            letter-spacing: -1px;
+        }
+
+        .clock {
+            font-size: 7vh;
+            font-weight: 900;
+            color: var(--primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .billboard-container {
+            flex: 1;
+            padding: 3vh 6vw;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5vh;
+            overflow-y: hidden;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4vh 6vw;
+            background: #ffffff;
+            border-radius: 3vh;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            border-left: 25px solid #cbd5e1;
+            animation: slideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            position: relative;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .row.type-arrived {
+            border-left-color: var(--danger);
+            background: #fff1f2;
+        }
+
+        .row.type-soon {
+            border-left-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .row.type-thanks {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 5vw;
+        }
+
+        .student-name {
+            font-size: 11vh;
+            font-weight: 900;
+            color: #1e293b;
+        }
+
+        .status-badge {
+            font-size: 6vh;
+            padding: 1.5vh 4vw;
+            border-radius: 2vh;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .row.type-arrived .status-badge {
+            color: #fff;
+            background: var(--danger);
+            box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.4);
+        }
+
+        .row.type-soon .status-badge {
+            color: #fff;
+            background: var(--warning);
+            box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
+        }
+
+        .row.type-thanks .status-badge {
+            color: #fff;
+            background: var(--success);
+            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+        }
+
+        .arrival-time {
+            font-size: 6vh;
+            font-weight: 700;
+            color: #94a3b8;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Newest Highlight */
+        .row:first-child {
+            z-index: 10;
+            transform: scale(1.03);
+            box-shadow: 0 25px 40px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .row:first-child.type-arrived {
+            animation: glowRed 1.5s infinite ease-in-out;
+        }
+
+        @keyframes glowRed {
+            0% {
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 60px rgba(239, 68, 68, 0.5);
+            }
+
+            100% {
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+            }
+        }
+
+        .no-data {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 7vh;
+            color: #94a3b8;
+            font-weight: 700;
+            gap: 2vh;
+        }
     </style>
 </head>
+
 <body>
-    <div id="overlay" onclick="startApp()">
-        <h1>🔊 [ 請按這裡 ] 啟動永久廣播</h1>
-    </div>
+    <header>
+        <div class="title">CAMPUS PICKUP LIVE</div>
+        <div id="clock" class="clock">00:00:00</div>
+    </header>
 
-    <div class="header">
-        <div style="display:flex; align-items:center;">
-            <img src="/static/images/sch_pickup_banner_wide.png" style="height: 60px; margin-right: 15px; border-radius: 8px;">
-            <div class="school-name">🏥 智慧校園接送同步看板</div>
-        </div>
-        <div id="clock" style="font-size: 26px; color: #888;">正在對時...</div>
-    </div>
-
-    <div id="latest-notify" class="latest-box" style="display:none;">
-        <span id="latest-msg">---</span>
-    </div>
-
-    <div id="content-area"></div>
-
-    <div id="debug-panel">
-        <div style="display:flex; align-items:center;">
-            <button class="test-btn" onclick="testSound()">🔔 測試</button>
-            <div id="log-area" style="margin-left:10px;">狀態: 等待系統喚醒...</div>
-        </div>
-        <div id="heart-rate" style="color:#444;">💓 對接中</div>
+    <div id="billboard" class="billboard-container">
+        <div class="no-data">🍃 靜候放學廣播中...</div>
     </div>
 
     <script>
-        let lastParentTime = "";
-        let isStarted = false;
-        let speakQueue = [];
-        let isSpeaking = false;
-        let currentAudio = null;
+        let lastHistoryHash = "";
 
-        function log(msg) {
-            console.log(msg);
-            const area = document.getElementById('log-area');
-            if (area) area.innerText = msg;
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('zh-TW', { hour12: false });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        async function poll() {
+            try {
+                const res = await fetch('/api/poll');
+                const data = await res.json();
+                const currentHash = JSON.stringify(data.history);
+                if (currentHash === lastHistoryHash) return;
+                lastHistoryHash = currentHash;
+                updateBillboard(data.history);
+            } catch (err) { console.error("Poll error:", err); }
         }
 
-        function startApp() {
-            if (isStarted) return;
-            isStarted = true;
-            document.getElementById('overlay').style.display = 'none';
-            log("🚀 語音核心已喚醒");
-            testSound();
-            fetchData();
-        }
-
-        function testSound() {
-            speak("系統語音連線成功，準備接待家長。", null);
-        }
-
-        function speak(text, audioUrl, retryCount = 0) {
-            if (!isStarted) return;
-            
-            if (audioUrl) {
-                const rawUrl = audioUrl.startsWith('http') ? audioUrl : (window.location.origin + (audioUrl.startsWith('/') ? '' : '/') + audioUrl);
-                // 每次嘗試都加上時間戳以避免 404 快取
-                const fullUrl = rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
-                
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio = null;
-                }
-
-                log(`🔊 嘗試播放 Edge TTS (第${retryCount+1}次): ${text}`);
-                const audio = new Audio(fullUrl);
-                
-                audio.play().then(() => {
-                    currentAudio = audio;
-                    log("✅ Edge TTS 播放成功");
-                }).catch(e => {
-                    // 如果是檔案還沒準備好 (或者是 404)，且重試次數少於 3 次
-                    if (retryCount < 3) {
-                        log(`⏳ 音檔準備中，1秒後重試...`);
-                        setTimeout(() => speak(text, audioUrl, retryCount + 1), 1000);
-                    } else {
-                        log("⚠️ 多次重試失敗，切換備援語音");
-                        fallbackSpeak(text);
-                    }
-                });
+        function updateBillboard(history) {
+            const container = document.getElementById('billboard');
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div class="no-data">🍃 目前無接送資訊</div>';
                 return;
             }
 
-            fallbackSpeak(text);
+            container.innerHTML = history.slice(0, 5).map(item => `
+                <div class="row ${item.class || ''}">
+                    <div class="student-info">
+                        <div class="student-name">${item.name}</div>
+                        <div class="status-badge">${item.status}</div>
+                    </div>
+                    <div class="arrival-time">${item.time}</div>
+                </div>
+            `).join('');
         }
 
-        function fallbackSpeak(text) {
-            if (!text) return;
-            log("準備備援廣播: " + text);
-            const utter = new SpeechSynthesisUtterance(text);
-            let voices = window.speechSynthesis.getVoices();
-            
-            const setVoiceAndSpeak = () => {
-                const preferred = voices.find(v => v.name.includes("HsiaoChen") || v.name.includes("Xiaoxiao")) || 
-                                voices.find(v => v.lang && v.lang.includes("zh-TW")) || 
-                                voices.find(v => v.lang && v.lang.includes("zh-CN")) || voices[0];
-                if (preferred) utter.voice = preferred;
-                utter.lang = 'zh-TW';
-                utter.rate = 1.1;
-                
-                utter.onstart = () => { isSpeaking = true; log("🔊 (備援)正在發聲: " + text); };
-                utter.onend = () => { isSpeaking = false; log("✓ 播報完畢"); processQueue(); };
-                utter.onerror = (e) => { isSpeaking = false; log("✕ 出錯: " + e.error); processQueue(); };
-
-                speakQueue.push(utter);
-                processQueue();
-            };
-
-            if (voices.length === 0) {
-                // Chrome 有時需要等待 onvoiceschanged 才能取得語音包
-                window.speechSynthesis.onvoiceschanged = () => {
-                    voices = window.speechSynthesis.getVoices();
-                    setVoiceAndSpeak();
-                };
-            } else {
-                setVoiceAndSpeak();
-            }
-        }
-
-        function processQueue() {
-            if (isSpeaking || speakQueue.length === 0) return;
-            // 關鍵：強迫引擎醒過來
-            window.speechSynthesis.resume();
-            
-            const nextUtter = speakQueue.shift();
-            // 在每一聲之前都先 cancel，防止 Chrome 快照卡死，這對「第二聲」很重要
-            window.speechSynthesis.cancel();
-            
-            // 延遲一點點再 speak，讓 cancel 徹底生效
-            setTimeout(() => {
-                window.speechSynthesis.speak(nextUtter);
-            }, 50);
-        }
-
-        async function fetchData() {
-            try {
-                const apiUrl = window.location.pathname.includes('/pickup') ? '/pickup/api/poll' : '/api/poll';
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                document.getElementById('clock').innerText = "🕒 " + data.now;
-
-                const history = data.history.filter(item => item.class !== 'type-thanks');
-                if (history.length > 0) {
-                    renderTable(history);
-                    const first = history[0];
-                    const rid = first.name + "_" + first.time;
-
-                    if (rid !== lastParentTime) {
-                        log("🔥 偵測到新狀態: " + rid);
-                        // 帶入 audio_url 給 speak 函數
-                        speak(first.speech_text, first.audio_url);
-                        lastParentTime = rid;
-                        
-                        if (first.class === 'type-arrived') {
-                            document.getElementById('latest-notify').style.display = 'block';
-                            document.getElementById('latest-msg').innerText = "📢 " + first.name + " 已抵達校門！";
-                        } else {
-                            document.getElementById('latest-notify').style.display = 'none';
-                        }
-                    }
-                } else {
-                    document.getElementById('content-area').innerHTML = '<div style="text-align:center;padding:100px;font-size:35px;color:#338;">☕ 目前暫無學生出發...</div>';
-                    document.getElementById('latest-notify').style.display = 'none';
-                }
-            } catch (err) { log("✕ 連線異常: " + err.message); }
-        }
-
-        function renderTable(history) {
-            let html = `<table><tbody>`;
-            history.forEach(item => {
-                const tagClass = (item.class === 'type-arrived') ? 'tag-arrived' : 'tag-soon';
-                html += `<tr><td class="name">${item.name}</td><td style="text-align:right;"><span class="status-tag ${tagClass}">${item.status}</span></td></tr>`;
-            });
-            html += `</tbody></table>`;
-            document.getElementById('content-area').innerHTML = html;
-        }
-
-        // --- 強力保活機制 (每 15 秒執行一次) ---
-        setInterval(() => {
-            if (isStarted) {
-                window.speechSynthesis.resume();
-                document.getElementById('heart-rate').innerText = "💓 跳動中: " + new Date().getSeconds();
-            }
-        }, 15000);
-
-        setInterval(fetchData, 3000);
+        setInterval(poll, 2500);
+        poll();
     </script>
 </body>
+
 </html>

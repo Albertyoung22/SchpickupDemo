@@ -70,7 +70,7 @@
             border-radius: 2rem;
             background: #f0fdf4;
             color: #166534;
-            border: 1px solid #bbfc7;
+            border: 1px solid #bbf7d0;
             font-weight: 600;
         }
 
@@ -357,6 +357,11 @@
                 <div id="volume-val" class="range-val">+0%</div>
             </div>
 
+            <div class="form-group">
+                <label>學校校務處電話</label>
+                <input type="text" id="school-phone-input" placeholder="例如: 02-1234-5678">
+            </div>
+
             <div class="form-group"
                 style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8fafc; border-radius: 1rem;">
                 <input type="checkbox" id="local-play-check" checked
@@ -426,6 +431,7 @@
                 const vol = parseInt(settings.volume.replace('%', ''));
                 document.getElementById('rate-range').value = rate;
                 document.getElementById('volume-range').value = vol;
+                document.getElementById('school-phone-input').value = settings.school_phone || "";
                 updateRangeLabels();
                 document.getElementById('local-play-check').checked = settings.local_play;
             }
@@ -445,7 +451,8 @@
                 voice: document.getElementById('voice-select').value,
                 rate: (rate >= 0 ? '+' : '') + rate + '%',
                 volume: (vol >= 0 ? '+' : '') + vol + '%',
-                local_play: document.getElementById('local-play-check').checked
+                local_play: document.getElementById('local-play-check').checked,
+                school_phone: document.getElementById('school-phone-input').value
             };
 
             if (window.pywebview && window.pywebview.api) {

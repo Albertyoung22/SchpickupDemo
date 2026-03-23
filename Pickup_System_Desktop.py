@@ -59,25 +59,27 @@ current_voice = "zh-TW-HsiaoChenNeural"
 current_rate = "+0%"
 current_volume = "+0%"
 enable_local_play = True  # Enable local MPV playback
+school_phone = "02-1234-5678" # Default School Phone Number
 
 speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
 
-HELP_TEXT = (
-    "🛑 【重要通知：您尚未完成註冊】\n\n"
-    "在使用接送廣播功能前，請務必先完成註冊：\n"
-    "--------------------------\n"
-    "✍️ 註冊方式：直接回覆 #名字\n"
-    "範例：#三年二班王小明爸爸\n"
-    "--------------------------\n\n"
-    "⚠️ 【使用注意事項】：\n"
-    "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
-    "2. 一個 LINE 帳號僅能綁定一位學生姓名，若有異動請重新輸入註冊指令。\n"
-    "3. 請確保網路收訊良好，避免訊息延遲造成接送困擾。\n"
-    "4. 如有任何註冊問題，請聯繫學校教務處 (02-1234-5678)。"
-)
+def get_help_text():
+    return (
+        "🛑 【重要通知：您尚未完成註冊】\n\n"
+        "在使用接送廣播功能前，請務必先完成註冊：\n"
+        "--------------------------\n"
+        "✍️ 註冊方式：直接回覆 #名字\n"
+        "範例：#三年二班王小明爸爸\n"
+        "--------------------------\n\n"
+        "⚠️ 【使用注意事項】：\n"
+        "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
+        "2. 一個 LINE 帳號僅能綁定一位學生姓名，若有異動請重新輸入註冊指令。\n"
+        "3. 請確保網路收訊良好，避免訊息延遲造成接送困擾。\n"
+        f"4. 如有任何註冊問題，請聯繫學校教務處 ({school_phone})。"
+    )
 
 # --- Helpers ---
 def line_reply(reply_token, text):
@@ -148,16 +150,18 @@ class DesktopAPI:
             "rate": current_rate,
             "volume": current_volume,
             "local_play": enable_local_play,
+            "school_phone": school_phone,
             "parent_count": len(PARENTS_DB),
             "voice_options": VOICE_OPTIONS
         }
 
     def update_settings(self, settings):
-        global current_voice, current_rate, current_volume, enable_local_play
+        global current_voice, current_rate, current_volume, enable_local_play, school_phone
         if "voice" in settings: current_voice = settings["voice"]
         if "rate" in settings: current_rate = settings["rate"]
         if "volume" in settings: current_volume = settings["volume"]
         if "local_play" in settings: enable_local_play = settings["local_play"]
+        if "school_phone" in settings: school_phone = settings["school_phone"]
         logger.info(f"⚙️ [設定更新] {settings}")
         return True
 
@@ -227,10 +231,13 @@ def handle_message(event):
             line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
     if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊"]:
-        line_reply(event.reply_token, HELP_TEXT)
+        line_reply(event.reply_token, get_help_text())
+        return
+    if "學校的電話號碼" in msg_text or "學校電話" in msg_text:
+        line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_phone}")
         return
     if user_id not in PARENTS_DB:
-        line_reply(event.reply_token, HELP_TEXT)
+        line_reply(event.reply_token, get_help_text())
         return
     parent_name = PARENTS_DB[user_id]
     s_text, s_label, s_class = msg_text, "通知", "type-soon"
@@ -250,7 +257,7 @@ def handle_message(event):
 
 @handler.add(FollowEvent)
 def handle_follow(event):
-    line_reply(event.reply_token, f"👋 您好！歡迎使用【學生接送廣播系統】。\n\n{HELP_TEXT}")
+    line_reply(event.reply_token, f"👋 您好！歡迎使用【學生接送廣播系統】。\n\n{get_help_text()}")
 
 # --- Desktop UI Implementation ---
 def run_app():

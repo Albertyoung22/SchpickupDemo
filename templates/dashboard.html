@@ -1,39 +1,180 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>📋 導護老師監控控制台</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; background: #fff; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 15px; margin-bottom: 20px; }
-        h1 { margin: 0; color: #1a73e8; }
-        .timer { font-weight: bold; color: #666; font-size: 1.2rem; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f8f9fa; padding: 15px; text-align: left; border-bottom: 2px solid #eee; color: #555; }
-        td { padding: 15px; border-bottom: 1px solid #eee; }
-        
-        .status-badge { padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; display: inline-block; }
-        .type-arrived { background-color: #ffeeee; color: #d32f2f; }
-        .type-soon { background-color: #fff3e0; color: #e65100; }
-        .type-thanks { background-color: #e8f5e9; color: #2e7d32; }
-        
-        .action-btn { background: #34a853; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .action-btn:hover { background: #2d8e47; transform: translateY(-1px); }
-        .action-btn:active { background: #267a3d; transform: translateY(0); }
-        
-        .empty-hint { text-align: center; color: #999; padding: 50px; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            color: #1a73e8;
+        }
+
+        .timer {
+            font-weight: bold;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .settings-row label {
+            font-weight: bold;
+            min-width: 80px;
+        }
+
+        .settings-btn {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #eee;
+            color: #555;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .type-arrived {
+            background-color: #ffeeee;
+            color: #d32f2f;
+        }
+
+        .type-soon {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .type-thanks {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .action-btn {
+            background: #34a853;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #2d8e47;
+            transform: translateY(-1px);
+        }
+
+        .empty-hint {
+            text-align: center;
+            color: #999;
+            padding: 50px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <div style="display:flex; align-items:center;">
-                <img src="/static/images/sch_pickup_banner_wide.png" style="height: 40px; margin-right: 12px; border-radius: 5px;">
+                <img src="/static/images/sch_pickup_banner_wide.png"
+                    style="height: 40px; margin-right: 12px; border-radius: 5px;" onerror="this.style.display='none'">
                 <h1>🏫 導護現場監控台</h1>
             </div>
-            <div class="timer" id="clock">---</div>
+            <div>
+                <span class="timer" id="clock">---</span>
+                <button class="settings-btn" onclick="toggleSettings()">⚙️ 設定</button>
+            </div>
+        </div>
+
+        <div id="settings" class="settings-panel">
+            <div style="display:flex; justify-content: space-between;">
+                <h3>⚙️ 廣播參數設定</h3>
+                <span id="parent-count" style="color:#1a73e8; font-weight:bold;">已註冊家長：-- 位</span>
+            </div>
+            <div class="settings-row">
+                <label>播報角色</label>
+                <select id="voice-select" onchange="saveSettings()"></select>
+                <label style="margin-left: 20px;">本地播放</label>
+                <input type="checkbox" id="local-play" onchange="saveSettings()">
+            </div>
+            <div class="settings-row">
+                <label>速度 (Rate)</label>
+                <input type="range" id="rate-range" min="-50" max="100" value="0"
+                    oninput="updateRangeLabel('rate', this.value)" onchange="saveSettings()">
+                <span id="rate-label">+0%</span>
+            </div>
+            <div class="settings-row">
+                <label>音量 (Vol)</label>
+                <input type="range" id="vol-range" min="-50" max="100" value="0"
+                    oninput="updateRangeLabel('vol', this.value)" onchange="saveSettings()">
+                <span id="vol-label">+0%</span>
+            </div>
         </div>
 
         <div id="content-area">
@@ -42,12 +183,60 @@
     </div>
 
     <script>
+        function toggleSettings() {
+            const panel = document.getElementById('settings');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            if (panel.style.display === 'block') loadSettings();
+        }
+
+        function updateRangeLabel(id, val) {
+            const txt = (val >= 0 ? "+" : "") + val + "%";
+            document.getElementById(id + "-label").innerText = txt;
+        }
+
+        async function loadSettings() {
+            if (window.pywebview && window.pywebview.api) {
+                const s = await window.pywebview.api.get_settings();
+                const sel = document.getElementById('voice-select');
+                sel.innerHTML = '';
+                for (const [name, code] of Object.entries(s.voice_options)) {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.text = name;
+                    if (code === s.voice) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+                document.getElementById('local-play').checked = s.local_play;
+                document.getElementById('rate-range').value = parseInt(s.rate);
+                document.getElementById('vol-range').value = parseInt(s.volume);
+                updateRangeLabel('rate', s.rate);
+                updateRangeLabel('vol', s.volume);
+                document.getElementById('parent-count').innerText = "已註冊家長：" + s.parent_count + " 位";
+            }
+        }
+
+        async function saveSettings() {
+            if (window.pywebview && window.pywebview.api) {
+                const settings = {
+                    voice: document.getElementById('voice-select').value,
+                    local_play: document.getElementById('local-play').checked,
+                    rate: (parseInt(document.getElementById('rate-range').value) >= 0 ? "+" : "") + document.getElementById('rate-range').value + "%",
+                    volume: (parseInt(document.getElementById('vol-range').value) >= 0 ? "+" : "") + document.getElementById('vol-range').value + "%"
+                };
+                await window.pywebview.api.update_settings(settings);
+            }
+        }
+
         async function fetchData() {
             try {
-                const res = await fetch('/pickup/api/poll');
+                const res = await fetch('/api/poll');
                 const data = await res.json();
                 document.getElementById('clock').innerText = "最後更新：" + data.now;
                 renderTable(data.history);
+                // Also update parent count if settings open
+                if (document.getElementById('settings').style.display === 'block') {
+                    loadSettings();
+                }
             } catch (e) {
                 console.error("Dashboard Poll Error:", e);
             }
@@ -58,7 +247,7 @@
             try {
                 const res = await fetch('/pickup/api/clear_parent', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: name })
                 });
                 if (res.ok) fetchData();
@@ -90,4 +279,5 @@
         fetchData();
     </script>
 </body>
+
 </html>

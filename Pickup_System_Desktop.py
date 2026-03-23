@@ -7,7 +7,6 @@ import logging
 import queue
 import time
 import datetime
-import ssl
 try:
     import webview
 except ImportError:
@@ -22,11 +21,6 @@ from dotenv import load_dotenv
 
 # Load variables from .env if present
 load_dotenv()
-
-# [CRITICAL] Fix Edge TTS connection issues on Render/Cloud
-try:
-    ssl._create_default_https_context = ssl._create_unverified_context
-except Exception: pass
 
 # --- Configuration & Globals ---
 logging.basicConfig(level=logging.INFO)
@@ -66,40 +60,6 @@ current_rate = "+0%"
 current_volume = "+0%"
 enable_local_play = True  # Enable local MPV playback
 school_phone = "02-1234-5678" # Default School Phone Number
-
-CONFIG_FILE = "app_config.json"
-
-def load_app_config():
-    global current_voice, current_rate, current_volume, enable_local_play, school_phone
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                current_voice = config.get("voice", current_voice)
-                current_rate = config.get("rate", current_rate)
-                current_volume = config.get("volume", current_volume)
-                enable_local_play = config.get("enable_local_play", enable_local_play)
-                school_phone = config.get("school_phone", school_phone)
-                logger.info("⚙️ [配置載入] 已從檔案載入系統設定。")
-        except Exception as e:
-            logger.error(f"❌ [配置錯誤] 載入設定失敗: {e}")
-
-def save_app_config():
-    try:
-        config = {
-            "voice": current_voice,
-            "rate": current_rate,
-            "volume": current_volume,
-            "enable_local_play": enable_local_play,
-            "school_phone": school_phone
-        }
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=4)
-        logger.info("💾 [配置儲存] 系統設定已儲存至檔案。")
-    except Exception as e:
-        logger.error(f"❌ [配置錯誤] 儲存設定失敗: {e}")
-
-load_app_config()
 
 speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"
@@ -203,7 +163,6 @@ class DesktopAPI:
         if "local_play" in settings: enable_local_play = settings["local_play"]
         if "school_phone" in settings: school_phone = settings["school_phone"]
         logger.info(f"⚙️ [設定更新] {settings}")
-        save_app_config() # Save to disk
         return True
 
 desktop_api = DesktopAPI()

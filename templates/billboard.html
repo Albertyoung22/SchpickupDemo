@@ -187,10 +187,43 @@
             font-weight: 700;
             gap: 2vh;
         }
+
+        /* Audio Unblock Overlay */
+        #unblock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 132, 199, 0.9);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            cursor: pointer;
+            transition: opacity 0.5s;
+        }
+
+        #unblock-overlay h2 {
+            font-size: 6vh;
+            margin-bottom: 2vh;
+        }
+
+        #unblock-overlay p {
+            font-size: 3vh;
+            opacity: 0.8;
+        }
     </style>
 </head>
 
 <body>
+    <div id="unblock-overlay" onclick="enableAudio()">
+        <h2>點擊螢幕啟用語音廣播</h2>
+        <p>Click anywhere to enable sound</p>
+    </div>
+
     <header>
         <div class="title">CAMPUS PICKUP LIVE</div>
         <div id="clock" class="clock">00:00:00</div>
@@ -202,6 +235,8 @@
 
     <script>
         let lastHistoryHash = "";
+        let lastPlayedAudioUrl = "";
+        let audioEnabled = false;
 
         function updateClock() {
             const now = new Date();
@@ -210,14 +245,30 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        function enableAudio() {
+            audioEnabled = true;
+            document.getElementById('unblock-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('unblock-overlay').style.display = 'none';
+            }, 500);
+
+            // Play a silent sound to "warm up" the audio context
+            const audio = new Audio();
+            audio.play().catch(() => { });
+            console.log("Audio enabled");
+        }
+
         async function poll() {
             try {
                 const res = await fetch('/api/poll');
                 const data = await res.json();
                 const currentHash = JSON.stringify(data.history);
-                if (currentHash === lastHistoryHash) return;
-                lastHistoryHash = currentHash;
-                updateBillboard(data.history);
+
+                if (currentHash !== lastHistoryHash) {
+                    lastHistoryHash = currentHash;
+                    updateBillboard(data.history);
+                    checkAndPlayAudio(data.history);
+                }
             } catch (err) { console.error("Poll error:", err); }
         }
 
@@ -237,6 +288,19 @@
                     <div class="arrival-time">${item.time}</div>
                 </div>
             `).join('');
+        }
+
+        function checkAndPlayAudio(history) {
+            if (!audioEnabled || !history || history.length === 0) return;
+
+            const latest = history[0];
+            // If the latest entry has a new audio URL, play it
+            if (latest.audio_url && latest.audio_url !== lastPlayedAudioUrl) {
+                console.log("Announcement:", latest.name, latest.status);
+                const audio = new Audio(latest.audio_url);
+                audio.play().catch(err => console.error("Audio Play Error:", err));
+                lastPlayedAudioUrl = latest.audio_url;
+            }
         }
 
         setInterval(poll, 2500);

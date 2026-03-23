@@ -420,32 +420,20 @@
         }
 
         async function loadSettingsFromAPI() {
-            let settings = null;
             if (window.pywebview && window.pywebview.api) {
-                settings = await window.pywebview.api.get_settings();
-            } else {
-                // Fallback to REST API for Render/Browser
-                try {
-                    const res = await fetch('/api/get_settings');
-                    if (res.ok) settings = await res.json();
-                } catch (e) { console.error("API Error:", e); }
-            }
+                const settings = await window.pywebview.api.get_settings();
+                const vSelect = document.getElementById('voice-select');
+                vSelect.innerHTML = Object.entries(settings.voice_options).map(([name, code]) =>
+                    `<option value="${code}" ${settings.voice === code ? 'selected' : ''}>${name}</option>`
+                ).join('');
 
-            if (!settings) return;
-
-            const vSelect = document.getElementById('voice-select');
-            vSelect.innerHTML = Object.entries(settings.voice_options).map(([name, code]) =>
-                `<option value="${code}" ${settings.voice === code ? 'selected' : ''}>${name}</option>`
-            ).join('');
-
-            const rate = parseInt(settings.rate.replace('%', ''));
-            const vol = parseInt(settings.volume.replace('%', ''));
-            document.getElementById('rate-range').value = rate;
-            document.getElementById('volume-range').value = vol;
-            document.getElementById('school-phone-input').value = settings.school_phone || "";
-            updateRangeLabels();
-            if (document.getElementById('local-play-check')) {
-                document.getElementById('local-play-check').checked = !!settings.local_play;
+                const rate = parseInt(settings.rate.replace('%', ''));
+                const vol = parseInt(settings.volume.replace('%', ''));
+                document.getElementById('rate-range').value = rate;
+                document.getElementById('volume-range').value = vol;
+                document.getElementById('school-phone-input').value = settings.school_phone || "";
+                updateRangeLabels();
+                document.getElementById('local-play-check').checked = settings.local_play;
             }
         }
 
@@ -463,26 +451,13 @@
                 voice: document.getElementById('voice-select').value,
                 rate: (rate >= 0 ? '+' : '') + rate + '%',
                 volume: (vol >= 0 ? '+' : '') + vol + '%',
-                local_play: document.getElementById('local-play-check') ? document.getElementById('local-play-check').checked : false,
+                local_play: document.getElementById('local-play-check').checked,
                 school_phone: document.getElementById('school-phone-input').value
             };
 
             if (window.pywebview && window.pywebview.api) {
                 await window.pywebview.api.update_settings(settings);
                 closeSettings();
-            } else {
-                // Fallback to REST API
-                try {
-                    const res = await fetch('/api/update_settings', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(settings)
-                    });
-                    if (res.ok) {
-                        alert("設定已儲存至雲端！");
-                        closeSettings();
-                    }
-                } catch (e) { alert("儲存失敗，請檢查網路連線。"); }
             }
         }
 

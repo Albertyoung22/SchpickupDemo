@@ -176,6 +176,31 @@
             }
         }
 
+        .audio-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.4s ease;
+        }
+
+        .audio-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .audio-overlay span {
+            font-size: 8vh;
+            font-weight: 900;
+        }
+
         .no-data {
             flex: 1;
             display: flex;
@@ -191,6 +216,10 @@
 </head>
 
 <body>
+    <div id="audioUnlock" class="audio-overlay" onclick="unlockAudio()">
+        <span>🔊 點擊任意處開始啟用語音播報</span>
+    </div>
+
     <header>
         <div class="title">CAMPUS PICKUP LIVE</div>
         <div id="clock" class="clock">00:00:00</div>
@@ -202,6 +231,56 @@
 
     <script>
         let lastHistoryHash = "";
+        let audioQueue = [];
+        let isPlaying = false;
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            // Play a silent audio or empty sound to unlock context
+            const silentAudio = new Audio();
+            silentAudio.src = "data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqy=";
+            silentAudio.play().catch(e => console.log(e));
+            audioUnlocked = true;
+            document.getElementById('audioUnlock').classList.add('hidden');
+        }
+
+        // Wait to ensure audio URL is accessible (max retries)
+        async function checkAudioReady(url, retries = 5, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url, { method: 'HEAD' });
+                    if (res.ok) return true;
+                } catch (e) { }
+                await new Promise(r => setTimeout(r, delay));
+            }
+            return false;
+        }
+
+        async function playAudio(url) {
+            return new Promise((resolve) => {
+                const audio = new Audio(url);
+                audio.onended = resolve;
+                audio.onerror = resolve;
+                audio.play().catch(e => {
+                    console.error("Audio block:", e);
+                    resolve();
+                });
+            });
+        }
+
+        async function processAudioQueue() {
+            if (isPlaying || audioQueue.length === 0) return;
+            isPlaying = true;
+            while (audioQueue.length > 0) {
+                const url = audioQueue.shift();
+                const isReady = await checkAudioReady(url, 10, 1000); // give TTS some time to generate
+                if (isReady && audioUnlocked) {
+                    await playAudio(url);
+                }
+            }
+            isPlaying = false;
+        }
 
         function updateClock() {
             const now = new Date();
@@ -216,6 +295,19 @@
                 const data = await res.json();
                 const currentHash = JSON.stringify(data.history);
                 if (currentHash === lastHistoryHash) return;
+                
+                // Diff and push audio to queue
+                if (lastHistoryHash !== "") {
+                    const oldObj = JSON.parse(lastHistoryHash);
+                    const oldKeys = new Set(oldObj.map(x => x.name + x.time));
+                    const newItems = data.history.filter(x => !oldKeys.has(x.name + x.time)).reverse();
+                    
+                    for (let item of newItems) {
+                        if (item.audio_url) audioQueue.push(item.audio_url);
+                    }
+                    processAudioQueue();
+                }
+
                 lastHistoryHash = currentHash;
                 updateBillboard(data.history);
             } catch (err) { console.error("Poll error:", err); }

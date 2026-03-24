@@ -71,8 +71,7 @@ def get_help_text():
         "🛑 【重要通知：您尚未完成註冊】\n\n"
         "在使用接送廣播功能前，請務必先完成註冊：\n"
         "--------------------------\n"
-        "✍️ 註冊方式：直接回覆 #名字\n"
-        "範例：#三年二班王小明爸爸\n"
+        "✍️ 請輸入格式：#三年二班王小明的爸爸\n"
         "--------------------------\n\n"
         "⚠️ 【使用注意事項】：\n"
         "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
@@ -287,11 +286,46 @@ def handle_message(event):
     user_id = event.source.user_id
     if msg_text.startswith("#") or msg_text.startswith("＃"):
         new_name = msg_text[1:].strip()
-        if new_name:
+        if new_name == "取消註冊":
+            if user_id in PARENTS_DB:
+                del PARENTS_DB[user_id]
+                save_parents_db()
+                line_reply(event.reply_token, "🗑️ 已成功取消您的家長註冊。")
+            return
+        elif new_name:
             PARENTS_DB[user_id] = new_name
             save_parents_db()
             line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
+        
+    if msg_text.startswith("@刪除") or msg_text.startswith("＠刪除"):
+        target_name = msg_text[3:].strip()
+        deleted = False
+        for uid, name in list(PARENTS_DB.items()):
+            if name == target_name or name == f"[BANNED]{target_name}":
+                del PARENTS_DB[uid]
+                deleted = True
+        if deleted:
+            save_parents_db()
+            line_reply(event.reply_token, f"✅ 已將「{target_name}」從資料庫移除。")
+        else:
+            line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
+        return
+
+    if msg_text.startswith("@黑名單") or msg_text.startswith("＠黑名單"):
+        target_name = msg_text[4:].strip()
+        banned = False
+        for uid, name in list(PARENTS_DB.items()):
+            if name == target_name:
+                PARENTS_DB[uid] = f"[BANNED]{target_name}"
+                banned = True
+        if banned:
+            save_parents_db()
+            line_reply(event.reply_token, f"⛔ 已將「{target_name}」列入黑名單，該帳號將無法觸發廣播。")
+        else:
+            line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
+        return
+
     if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊"]:
         line_reply(event.reply_token, get_help_text())
         return
@@ -301,7 +335,11 @@ def handle_message(event):
     if user_id not in PARENTS_DB:
         line_reply(event.reply_token, get_help_text())
         return
+        
     parent_name = PARENTS_DB[user_id]
+    if parent_name.startswith("[BANNED]"):
+        line_reply(event.reply_token, "⚠️ 您目前已被管理員限制廣播功能。")
+        return
     s_text, s_label, s_class = msg_text, "通知", "type-soon"
     if "已到達" in msg_text: s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
     elif "即將到達" in msg_text: s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"

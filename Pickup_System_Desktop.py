@@ -286,10 +286,14 @@ def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
     
-    # 🌟 Priority 1: Handle Guide/Help Keywords (Never Broadcast, Never Register as Name)
-    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明"]
+    # 🌟 Priority 1: Handle Keywords (Never Broadcast, Guide only)
+    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明", "電話", "聯絡中心"]
     if any(k in msg_text for k in help_keywords):
-        line_reply(event.reply_token, get_help_text())
+        # Specific Handle for Phone
+        if "電話" in msg_text or "聯絡中心" in msg_text:
+            line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_phone}")
+        else:
+            line_reply(event.reply_token, get_help_text())
         return
         
     # 2. Handle Name Registration (#NewName)
@@ -347,6 +351,7 @@ def handle_message(event):
     if "已到達" in msg_text: s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
     elif "即將到達" in msg_text: s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text: s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
+    elif "晚點到" in msg_text: s_text, s_label, s_class = "會晚點到，請老師知悉。", "會晚點到", "type-soon"
     global pickup_history
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
     now_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")

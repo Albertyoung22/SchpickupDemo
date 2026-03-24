@@ -96,6 +96,20 @@ def line_reply(reply_token, text):
 
 def load_parents_db():
     global PARENTS_DB
+    # Free, 0-config JSON storage for permanence
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d2072-b6a5-759c-94b4-dda409d5c48f"
+    import urllib.request, urllib.error
+
+    req = urllib.request.Request(blob_url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            PARENTS_DB = json.loads(response.read().decode('utf-8'))
+            logger.info("Successfully loaded DB from jsonblob!")
+            return
+    except Exception as e:
+        logger.error(f"Jsonblob load error: {e}")
+
+    # Fallback to local file
     if os.path.exists(PARENTS_FILE):
         try:
             with open(PARENTS_FILE, "r", encoding="utf-8") as f:
@@ -104,6 +118,23 @@ def load_parents_db():
     else: PARENTS_DB = {}
 
 def save_parents_db():
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d2072-b6a5-759c-94b4-dda409d5c48f"
+    import urllib.request, urllib.error
+    
+    data = json.dumps(PARENTS_DB).encode('utf-8')
+    req = urllib.request.Request(
+        blob_url,
+        data=data,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="PUT"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            logger.info("Successfully saved DB to jsonblob!")
+    except Exception as e:
+        logger.error(f"Jsonblob save error: {e}")
+
+    # Fallback to local file
     try:
         with open(PARENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
@@ -201,12 +232,12 @@ def api_tts_preview():
 
 @app.route("/", methods=['GET'])
 def index():
-    return jsonify({"status": "running", "uptime": str(datetime.datetime.now())}), 200
+    return jsonify({"status": "running", "uptime": str(datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))))}), 200
 
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
 def dashboard():
-    now_str = datetime.datetime.now().strftime("%H:%M:%S")
+    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     return render_template('dashboard.html', history=pickup_history, now=now_str)
 
 @app.route("/billboard", methods=['GET'])
@@ -217,7 +248,7 @@ def billboard():
 @app.route("/api/poll", methods=['GET'])
 @app.route("/pickup/api/poll", methods=['GET'])
 def api_poll():
-    now_str = datetime.datetime.now().strftime("%H:%M:%S")
+    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     return jsonify({"history": pickup_history, "now": now_str}), 200
 
 @app.route("/api/clear_parent", methods=['POST'])
@@ -277,7 +308,7 @@ def handle_message(event):
     elif "接走" in msg_text or "接到孩子" in msg_text: s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
     global pickup_history
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
-    now_time = datetime.datetime.now().strftime("%H:%M:%S")
+    now_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     audio_filename = f"audio_{int(time.time())}.mp3"
     audio_full_path = os.path.join(AUDIO_DIR, audio_filename)
     entry = {"name": parent_name, "status": s_label, "time": now_time, "class": s_class, "speech_text": f"{parent_name} {s_text}", "audio_url": f"/get_audio/{audio_filename}"}

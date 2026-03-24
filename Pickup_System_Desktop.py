@@ -71,7 +71,8 @@ def get_help_text():
         "🛑 【重要通知：您尚未完成註冊】\n\n"
         "在使用接送廣播功能前，請務必先完成註冊：\n"
         "--------------------------\n"
-        "✍️ 請輸入格式：#三年二班王小明的爸爸\n"
+        "✍️ 註冊方式：直接回覆 #名字\n"
+        "範例：#三年二班王小明爸爸\n"
         "--------------------------\n\n"
         "⚠️ 【使用注意事項】：\n"
         "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
@@ -284,21 +285,15 @@ def callback():
 def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
-    # 1. Registration Handling (SILENT - NO BROADCAST)
-    if msg_text.startswith("#") or msg_text.startswith("＃") or "請輸入格式" in msg_text:
-        new_name = msg_text.replace("請輸入格式", "").replace("：", "").replace(":", "").strip()
-        if new_name.startswith("#") or new_name.startswith("＃"):
-            new_name = new_name[1:].strip()
-            
-        if not new_name: return # Ignore empty commands
-        
+    if msg_text.startswith("#") or msg_text.startswith("＃"):
+        new_name = msg_text[1:].strip()
         if new_name == "取消註冊":
             if user_id in PARENTS_DB:
                 del PARENTS_DB[user_id]
                 save_parents_db()
                 line_reply(event.reply_token, "🗑️ 已成功取消您的家長註冊。")
             return
-        else:
+        elif new_name:
             PARENTS_DB[user_id] = new_name
             save_parents_db()
             line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
@@ -332,12 +327,21 @@ def handle_message(event):
             line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
         return
 
-    if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊"]:
-        line_reply(event.reply_token, get_help_text())
+    # 3. 系統資訊指令 (不執行廣播)
+    if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊", "註冊身分", "身分"]:
+        if user_id in PARENTS_DB:
+            current_name = PARENTS_DB[user_id]
+            line_reply(event.reply_token, f"✅ 您目前已完成註冊！\n\n📌 註冊身分：【{current_name}】\n\n若您想要修改註冊名稱，請直接回覆：#新名字 (例如：#一年一班王小明爸爸)")
+        else:
+            line_reply(event.reply_token, get_help_text())
         return
-    if "學校的電話號碼" in msg_text or "學校電話" in msg_text:
+
+    # 4. 聯絡資訊指令 (不執行廣播)
+    if msg_text in ["聯絡學校", "電話", "學校電話", "聯絡"]:
         line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_phone}")
         return
+
+    # 5. 未註冊攔截 (非指令訊息)
     if user_id not in PARENTS_DB:
         line_reply(event.reply_token, get_help_text())
         return

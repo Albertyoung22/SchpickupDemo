@@ -335,7 +335,7 @@ def handle_message(event):
             line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
         return
 
-請輸入格式:#三年二班王小明的爸爸    if user_id not in PARENTS_DB:
+    if user_id not in PARENTS_DB:
         line_reply(event.reply_token, get_help_text())
         return
         

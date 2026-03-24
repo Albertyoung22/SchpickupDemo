@@ -284,15 +284,21 @@ def callback():
 def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
-    if msg_text.startswith("#") or msg_text.startswith("＃"):
-        new_name = msg_text[1:].strip()
+    # 1. Registration Handling (SILENT - NO BROADCAST)
+    if msg_text.startswith("#") or msg_text.startswith("＃") or "請輸入格式" in msg_text:
+        new_name = msg_text.replace("請輸入格式", "").replace("：", "").replace(":", "").strip()
+        if new_name.startswith("#") or new_name.startswith("＃"):
+            new_name = new_name[1:].strip()
+            
+        if not new_name: return # Ignore empty commands
+        
         if new_name == "取消註冊":
             if user_id in PARENTS_DB:
                 del PARENTS_DB[user_id]
                 save_parents_db()
                 line_reply(event.reply_token, "🗑️ 已成功取消您的家長註冊。")
             return
-        elif new_name:
+        else:
             PARENTS_DB[user_id] = new_name
             save_parents_db()
             line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")

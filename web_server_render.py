@@ -50,8 +50,7 @@ HELP_TEXT = (
     "🛑 【重要通知：您尚未完成註冊】\n\n"
     "在使用接送廣播功能前，請務必先完成註冊：\n"
     "--------------------------\n"
-    "✍️ 註冊方式：直接回覆 #名字\n"
-    "範例：#三年二班王小明爸爸\n"
+    "✍️ 請輸入格式：#三年二班王小明的爸爸\n"
     "--------------------------\n\n"
     "⚠️ 【使用注意事項】：\n"
     "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
@@ -79,6 +78,17 @@ def line_reply(reply_token, text):
         logger.error(f"Failed to reply via LINE: {e}")
 def load_parents_db():
     global PARENTS_DB
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d2072-b6a5-759c-94b4-dda409d5c48f"
+    import urllib.request, urllib.error
+    req = urllib.request.Request(blob_url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            PARENTS_DB = json.loads(response.read().decode('utf-8'))
+            logger.info("Successfully loaded DB from jsonblob!")
+            return
+    except Exception as e:
+        logger.error(f"Jsonblob load error: {e}")
+
     if os.path.exists(PARENTS_FILE):
         try:
             with open(PARENTS_FILE, "r", encoding="utf-8") as f:
@@ -89,10 +99,26 @@ def load_parents_db():
     else: PARENTS_DB = {}
 
 def save_parents_db():
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d2072-b6a5-759c-94b4-dda409d5c48f"
+    import urllib.request, urllib.error
+    data = json.dumps(PARENTS_DB).encode('utf-8')
+    req = urllib.request.Request(
+        blob_url,
+        data=data,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="PUT"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            logger.info("Successfully saved DB to jsonblob!")
+    except Exception as e:
+        logger.error(f"Jsonblob save error: {e}")
+
     try:
         with open(PARENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
     except Exception as e:
+        logger.error(f"Error saving {PARENTS_FILE}: {e}")
         logger.error(f"Error saving {PARENTS_FILE}: {e}")
 
 load_parents_db()
@@ -133,7 +159,7 @@ threading.Thread(target=speech_worker_thread, daemon=True).start()
 # Home route (Redir to Dashboard)
 @app.route("/", methods=['GET'])
 def index():
-    return jsonify({"status": "running", "uptime": str(datetime.datetime.now())}), 200
+    return jsonify({"status": "running", "uptime": str(datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))))}), 200
 
 # Web Dashboard (For Teachers)
 @app.route('/api/tts_preview', methods=['POST'])
@@ -169,7 +195,7 @@ def api_tts_preview():
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
 def dashboard():
-    now_str = datetime.datetime.now().strftime("%H:%M:%S")
+    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     return render_template('dashboard.html', history=pickup_history, now=now_str)
 
 # Large Billboard (For Student Screen)
@@ -182,7 +208,7 @@ def billboard():
 @app.route("/api/poll", methods=['GET'])
 @app.route("/pickup/api/poll", methods=['GET'])
 def api_poll():
-    now_str = datetime.datetime.now().strftime("%H:%M:%S")
+    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     return jsonify({
         "history": pickup_history,
         "now": now_str
@@ -235,15 +261,54 @@ def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
     
-    # 1. Registration Handling
-    if msg_text.startswith("#") or msg_text.startswith("＃"):
-        new_name = msg_text[1:].strip()
-        if new_name:
+    # 1. Registration Handling (SILENT - NO BROADCAST)
+    if msg_text.startswith("#") or msg_text.startswith("＃") or "請輸入格式" in msg_text:
+        new_name = msg_text.replace("請輸入格式", "").replace("：", "").replace(":", "").strip()
+        if new_name.startswith("#") or new_name.startswith("＃"):
+            new_name = new_name[1:].strip()
+            
+        if not new_name: return # Ignore empty commands
+        
+        if new_name == "取消註冊":
+            if user_id in PARENTS_DB:
+                del PARENTS_DB[user_id]
+                save_parents_db()
+                line_reply(event.reply_token, "🗑️ 已成功取消您的家長註冊。")
+            return
+        elif new_name:
             PARENTS_DB[user_id] = new_name
             save_parents_db()
             line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
 
+    # Admin DB Management Commands
+    if msg_text.startswith("@刪除") or msg_text.startswith("＠刪除"):
+        target_name = msg_text[3:].strip()
+        deleted = False
+        for uid, name in list(PARENTS_DB.items()):
+            if name == target_name or name == f"[BANNED]{target_name}":
+                del PARENTS_DB[uid]
+                deleted = True
+        if deleted:
+            save_parents_db()
+            line_reply(event.reply_token, f"✅ 已將「{target_name}」從資料庫移除。")
+        else:
+            line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
+        return
+
+    if msg_text.startswith("@黑名單") or msg_text.startswith("＠黑名單"):
+        target_name = msg_text[4:].strip()
+        banned = False
+        for uid, name in list(PARENTS_DB.items()):
+            if name == target_name:
+                PARENTS_DB[uid] = f"[BANNED]{target_name}"
+                banned = True
+        if banned:
+            save_parents_db()
+            line_reply(event.reply_token, f"⛔ 已將「{target_name}」列入黑名單，該帳號將無法觸發廣播。")
+        else:
+            line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
+        return
     # Help command / Registration Guide (不會觸發廣播)
     if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊"]:
         line_reply(event.reply_token, HELP_TEXT)
@@ -253,6 +318,12 @@ def handle_message(event):
     if user_id not in PARENTS_DB:
         logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
         line_reply(event.reply_token, HELP_TEXT)
+        return
+
+    parent_name = PARENTS_DB[user_id]
+    if parent_name.startswith("[BANNED]"):
+        logger.warning(f"🚫 [黑名單攔截] {parent_name} 嘗試發言")
+        line_reply(event.reply_token, "⚠️ 您目前已被管理員限制廣播功能。")
         return
 
     # Process Broadcast Message
@@ -270,7 +341,7 @@ def handle_message(event):
     # Remove old record for same parent
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
     
-    now_time = datetime.datetime.now().strftime("%H:%M:%S")
+    now_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     
     # Filename for audio (cloud-accessible)
     audio_filename = f"audio_{int(time.time())}_{user_id[-5:]}.mp3"

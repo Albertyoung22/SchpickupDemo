@@ -285,6 +285,14 @@ def callback():
 def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
+    
+    # 🌟 Priority 1: Handle Guide/Help Keywords (Never Broadcast, Never Register as Name)
+    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明"]
+    if any(k in msg_text for k in help_keywords):
+        line_reply(event.reply_token, get_help_text())
+        return
+        
+    # 2. Handle Name Registration (#NewName)
     if msg_text.startswith("#") or msg_text.startswith("＃"):
         new_name = msg_text[1:].strip()
         if new_name == "取消註冊":
@@ -327,15 +335,7 @@ def handle_message(event):
             line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
         return
 
-    # 3. Handle Guide Keywords (Never Broadcast)
-    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help"]
-    if any(k in msg_text for k in help_keywords):
-        line_reply(event.reply_token, get_help_text())
-        return
-    if "學校的電話號碼" in msg_text or "學校電話" in msg_text:
-        line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_phone}")
-        return
-    if user_id not in PARENTS_DB:
+請輸入格式:#三年二班王小明的爸爸    if user_id not in PARENTS_DB:
         line_reply(event.reply_token, get_help_text())
         return
         

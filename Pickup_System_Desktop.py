@@ -327,21 +327,14 @@ def handle_message(event):
             line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
         return
 
-    # 3. 系統資訊指令 (不執行廣播)
-    if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊", "註冊身分", "身分"]:
-        if user_id in PARENTS_DB:
-            current_name = PARENTS_DB[user_id]
-            line_reply(event.reply_token, f"✅ 您目前已完成註冊！\n\n📌 註冊身分：【{current_name}】\n\n若您想要修改註冊名稱，請直接回覆：#新名字 (例如：#一年一班王小明爸爸)")
-        else:
-            line_reply(event.reply_token, get_help_text())
+    # 3. Handle Guide Keywords (Never Broadcast)
+    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help"]
+    if any(k in msg_text for k in help_keywords):
+        line_reply(event.reply_token, get_help_text())
         return
-
-    # 4. 聯絡資訊指令 (不執行廣播)
-    if msg_text in ["聯絡學校", "電話", "學校電話", "聯絡"]:
+    if "學校的電話號碼" in msg_text or "學校電話" in msg_text:
         line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_phone}")
         return
-
-    # 5. 未註冊攔截 (非指令訊息)
     if user_id not in PARENTS_DB:
         line_reply(event.reply_token, get_help_text())
         return

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📍 位置廣播驗證 | 智慧接送系統</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-glow: rgba(14, 165, 233, 0.4);
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.8);
+            --text: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            position: relative;
+        }
+
+        .loader {
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .icon-check, .icon-error {
+            display: none;
+            width: 100%;
+            height: 100%;
+            font-size: 60px;
+            line-height: 80px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0 0 12px;
+            letter-spacing: -0.025em;
+        }
+
+        p {
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .dist-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 999px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            font-size: 1rem;
+            box-shadow: 0 4px 14px 0 var(--primary-glow);
+            display: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #94a3b8;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .loading { color: var(--primary); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="status-icon">
+            <div id="loader" class="loader"></div>
+            <div id="iconCheck" class="icon-check">✅</div>
+            <div id="iconError" class="icon-error">⚠️</div>
+        </div>
+
+        <h1 id="title">正在位置校正</h1>
+        <p id="desc">請稍候，我們正在確認您是否已經進入校園廣播區域。</p>
+        
+        <div id="distBadge" class="dist-badge"></div>
+
+        <button id="closeBtn" class="btn" onclick="liff.closeWindow()">關閉視窗</button>
+        <button id="retryBtn" class="btn btn-secondary" onclick="window.location.reload()">重新整理</button>
+    </div>
+
+    <script>
+        // --- 伺服器傳入參數 ---
+        const SCHOOL_LAT = {{ school_lat }}; 
+        const SCHOOL_LNG = {{ school_lng }}; 
+        const MAX_DISTANCE = {{ school_radius }}; 
+        const LIFF_ID = "{{ liff_id }}";
+
+        const ui = {
+            title: document.getElementById('title'),
+            desc: document.getElementById('desc'),
+            loader: document.getElementById('loader'),
+            check: document.getElementById('iconCheck'),
+            error: document.getElementById('iconError'),
+            closeBtn: document.getElementById('closeBtn'),
+            retryBtn: document.getElementById('retryBtn'),
+            dist: document.getElementById('distBadge')
+        };
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // 公尺
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; 
+        }
+
+        async function init() {
+            if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
+                showError("系統未設定 (LIFF ID 未填)", "請聯繫管理員更新伺服器設定。");
+                return;
+            }
+
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                // 取得位置啟動
+                liff.getLocation().then(async (pos) => {
+                    const d = getDistance(pos.latitude, pos.longitude, SCHOOL_LAT, SCHOOL_LNG);
+                    ui.dist.innerText = `距離校門：${Math.round(d)} 公尺`;
+                    ui.dist.style.display = 'inline-block';
+
+                    if (d <= MAX_DISTANCE) {
+                        // 1. 發送廣播訊息
+                        await liff.sendMessages([{ 
+                            type: 'text', 
+                            text: '已到達' 
+                        }]);
+                        
+                        // 2. 更新介面
+                        showSuccess("驗證成功", "已偵測到您已抵達，校門口正在為您廣播。");
+                        setTimeout(() => liff.closeWindow(), 3000);
+                        
+                    } else {
+                        showError("超出範圍", `目前距離學校 ${Math.round(d/1000, 1)} 公里，廣播功能僅限於校門口 ${MAX_DISTANCE}m 內使用。`);
+                    }
+                }).catch(err => {
+                    showError("定位失敗", "請確認手機已開啟 GPS，並在 LINE 設定中允許本服務存取位置資訊。");
+                });
+
+            } catch (err) {
+                console.error(err);
+                showError("初始化錯誤", "LIFF 無法啟動，請確認連結是否正確。");
+            }
+        }
+
+        function showSuccess(title, desc) {
+            ui.title.innerText = title;
+            ui.title.className = 'success';
+            ui.desc.innerText = desc;
+            ui.loader.style.display = 'none';
+            ui.check.style.display = 'block';
+            ui.closeBtn.style.display = 'block';
+        }
+
+        function showError(title, desc) {
+            ui.title.innerText = title;
+            ui.title.className = 'error';
+            ui.desc.innerText = desc;
+            ui.loader.style.display = 'none';
+            ui.error.style.display = 'block';
+            ui.closeBtn.style.display = 'block';
+            ui.retryBtn.style.display = 'block';
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

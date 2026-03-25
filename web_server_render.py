@@ -39,15 +39,23 @@ VOICE_CODE = "zh-TW-HsiaoChenNeural" # Default: HsiaoChen
 VOICE_RATE = "+0%"
 VOICE_VOLUME = "+0%"
 
+# GPS & LIFF Config
+SCHOOL_LAT = float(os.getenv('SCHOOL_LAT', '25.0330'))
+SCHOOL_LNG = float(os.getenv('SCHOOL_LNG', '121.5654'))
+SCHOOL_RADIUS = int(os.getenv('SCHOOL_RADIUS_METERS', '500'))
+LIFF_ID = os.getenv('LIFF_ID', '')
+
 speech_queue = queue.Queue()
 
 # --- Database & History ---
 PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
+activity_log = []
+LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d212f-4de3-7fc5-8bfb-056e7c975110"
 
 HELP_TEXT = (
-    "🛑 【重要通知：您尚未完成註冊】\n\n"
+    "🛑 【重要通知：您如果尚未完成註冊】\n\n"
     "在使用接送廣播功能前，請務必先完成註冊：\n"
     "--------------------------\n"
     "✍️ 註冊方式：直接回覆 #名字\n"
@@ -120,9 +128,39 @@ def save_parents_db():
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
     except Exception as e:
         logger.error(f"Error saving {PARENTS_FILE}: {e}")
-        logger.error(f"Error saving {PARENTS_FILE}: {e}")
+
+def load_activity_log():
+    global activity_log
+    import urllib.request, urllib.error
+    req = urllib.request.Request(LOG_BLOB_URL, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            activity_log = json.loads(response.read().decode('utf-8'))
+            logger.info("Successfully loaded history log from cloud.")
+    except Exception as e:
+        logger.error(f"Activity log load error: {e}")
+
+def save_activity_log():
+    global activity_log
+    import urllib.request, urllib.error
+    activity_log = activity_log[-1000:]
+    data = json.dumps(activity_log).encode('utf-8')
+    req = urllib.request.Request(
+        LOG_BLOB_URL,
+        data=data,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="PUT"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            logger.info("Successfully saved log to cloud.")
+    except Exception as e:
+        logger.error(f"Log save error: {e}")
 
 load_parents_db()
+load_activity_log()
+pickup_history = activity_log[-30:]
+pickup_history.reverse()
 
 # --- Speech worker thread (Generates MP3 for clients) ---
 async def generate_speech(text, v, r, vol, audio_path):
@@ -160,7 +198,7 @@ threading.Thread(target=speech_worker_thread, daemon=True).start()
 # Home route (Redir to Dashboard)
 @app.route("/", methods=['GET'])
 def index():
-    return jsonify({"status": "running", "uptime": str(datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))))}), 200
+    return render_template('portal.html')
 
 # Web Dashboard (For Teachers)
 @app.route('/api/tts_preview', methods=['POST'])
@@ -199,11 +237,30 @@ def dashboard():
     now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
     return render_template('dashboard.html', history=pickup_history, now=now_str)
 
+@app.route("/history", methods=['GET'])
+@app.route("/pickup/history", methods=['GET'])
+def history_page():
+    return render_template('history.html')
+
+@app.route("/api/history", methods=['GET'])
+@app.route("/pickup/api/history", methods=['GET'])
+def get_full_history():
+    return jsonify(activity_log), 200
+
 # Large Billboard (For Student Screen)
 @app.route("/billboard", methods=['GET'])
 @app.route("/pickup/billboard", methods=['GET'])
 def billboard():
     return render_template('billboard.html')
+
+# LIFF GPS Check
+@app.route("/liff/gps", methods=['GET'])
+def liff_gps():
+    return render_template('liff_gps.html', 
+                           liff_id=LIFF_ID, 
+                           school_lat=SCHOOL_LAT, 
+                           school_lng=SCHOOL_LNG, 
+                           school_radius=SCHOOL_RADIUS)
 
 # API for clients/billboards to poll status
 @app.route("/api/poll", methods=['GET'])
@@ -262,6 +319,15 @@ def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
     
+    # 🌟 Priority 1: Handle Keywords (Never Broadcast, Guide only)
+    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明", "電話", "聯絡中心"]
+    if any(k in msg_text for k in help_keywords):
+        if "電話" in msg_text or "聯絡中心" in msg_text:
+            line_reply(event.reply_token, f"🏫 學校的電話號碼：{os.getenv('SCHOOL_PHONE', '02-1234-5678')}")
+        else:
+            line_reply(event.reply_token, HELP_TEXT)
+        return
+    
     # 1. Registration Handling
     if msg_text.startswith("#") or msg_text.startswith("＃"):
         new_name = msg_text[1:].strip()
@@ -305,22 +371,7 @@ def handle_message(event):
         else:
             line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
         return
-    # 3. 系統資訊指令 (不執行廣播)
-    if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊", "註冊身分", "身分"]:
-        if user_id in PARENTS_DB:
-            current_name = PARENTS_DB[user_id]
-            line_reply(event.reply_token, f"✅ 您目前已完成註冊！\n\n📌 註冊身分：【{current_name}】\n\n若您想要修改註冊名稱，請直接回覆：#新名字 (例如：#一年一班王小明爸爸)")
-        else:
-            line_reply(event.reply_token, HELP_TEXT)
-        return
-
-    # 4. 聯絡資訊指令 (不執行廣播)
-    if msg_text in ["聯絡學校", "電話", "學校電話", "聯絡"]:
-        school_ph = globals().get("school_phone", "02-1234-5678")
-        line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_ph}")
-        return
-
-    # 5. 未註冊攔截 (非指令訊息)
+    # 2. Check Registration
     if user_id not in PARENTS_DB:
         logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
         line_reply(event.reply_token, HELP_TEXT)
@@ -342,12 +393,17 @@ def handle_message(event):
         s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text:
          s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
+    elif "晚點到" in msg_text:
+        s_text, s_label, s_class = "會晚點到，請老師知悉。", "會晚點到", "type-soon"
 
-    global pickup_history
+    global pickup_history, activity_log
     # Remove old record for same parent
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
     
-    now_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
+    tz = datetime.timezone(datetime.timedelta(hours=8))
+    now = datetime.datetime.now(tz)
+    now_date = now.strftime("%Y-%m-%d")
+    now_time = now.strftime("%H:%M:%S")
     
     # Filename for audio (cloud-accessible)
     audio_filename = f"audio_{int(time.time())}_{user_id[-5:]}.mp3"
@@ -356,15 +412,22 @@ def handle_message(event):
     entry = {
         "name": parent_name, 
         "status": s_label, 
+        "date": now_date,
         "time": now_time, 
         "class": s_class,
         "speech_text": f"{parent_name} {s_text}",
         "audio_url": f"/get_audio/{audio_filename}"
     }
     
-    # Store in history
+    # 1. Update Polling history (Visible)
     pickup_history.insert(0, entry)
     if len(pickup_history) > 30: pickup_history.pop()
+    
+    # 2. Update Persistant log (1 week)
+    activity_log.append(entry)
+    seven_days_ago = (now - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    activity_log = [l for l in activity_log if l.get("date", "0000-00-00") >= seven_days_ago]
+    save_activity_log()
     
     # Queue audio generation
     speech_queue.put((f"{parent_name} {s_text}", audio_full_path))

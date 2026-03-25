@@ -281,6 +281,10 @@ def dashboard():
 def billboard():
     return render_template('billboard.html')
 
+@app.route("/liff/gps", methods=['GET'])
+def liff_gps():
+    return render_template('liff_gps.html')
+
 @app.route("/api/poll", methods=['GET'])
 @app.route("/pickup/api/poll", methods=['GET'])
 def api_poll():

@@ -8,7 +8,9 @@ from linebot.v3.messaging import (
     RichMenuArea,
     RichMenuSize,
     RichMenuBounds,
-    MessageAction
+    RichMenuBounds,
+    MessageAction,
+    URIAction
 )
 from dotenv import load_dotenv
 
@@ -44,10 +46,10 @@ def setup_rich_menu():
             name="Official Pickup Menu",
             chat_bar_text="點我開啟接送選單",
             areas=[
-                # Row 1, Col 1: 已到達校門
+                # Row 1, Col 1: 已到達校門 (GPS 驗證版)
                 RichMenuArea(
                     bounds=RichMenuBounds(x=0, y=0, width=grid_w, height=grid_h),
-                    action=MessageAction(label="已到達校門", text="已到達校門")
+                    action=URIAction(label="已到達校門", uri=os.getenv('LIFF_URL', 'https://liff.line.me/')) if os.getenv('LIFF_URL') else MessageAction(label="已到達校門", text="已到達校門")
                 ),
                 # Row 1, Col 2: 即將到達
                 RichMenuArea(

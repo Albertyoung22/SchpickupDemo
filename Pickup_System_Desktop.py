@@ -66,7 +66,7 @@ PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
 activity_log = []
-LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d212f-4de3-7fc5-8bfb-056e7c975110"
+LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d25ea-cb7b-7697-954f-36c4351335bd"
 
 def get_help_text():
     return (
@@ -99,7 +99,7 @@ def line_reply(reply_token, text):
 def load_parents_db():
     global PARENTS_DB
     # Free, 0-config JSON storage for permanence
-    blob_url = "https://jsonblob.com/api/jsonBlob/019d2072-b6a5-759c-94b4-dda409d5c48f"
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d25ea-c800-7dca-b145-4edf6ce0cd34"
     import urllib.request, urllib.error
 
     req = urllib.request.Request(blob_url, headers={"Accept": "application/json"})
@@ -120,7 +120,7 @@ def load_parents_db():
     else: PARENTS_DB = {}
 
 def save_parents_db():
-    blob_url = "https://jsonblob.com/api/jsonBlob/019d2072-b6a5-759c-94b4-dda409d5c48f"
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d25ea-c800-7dca-b145-4edf6ce0cd34"
     import urllib.request, urllib.error
     
     data = json.dumps(PARENTS_DB).encode('utf-8')

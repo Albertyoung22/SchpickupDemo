@@ -65,6 +65,8 @@ speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
+activity_log = []
+LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d212f-4de3-7fc5-8bfb-056e7c975110"
 
 def get_help_text():
     return (
@@ -140,7 +142,41 @@ def save_parents_db():
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
     except: pass
 
+def load_activity_log():
+    global activity_log
+    import urllib.request, urllib.error
+    req = urllib.request.Request(LOG_BLOB_URL, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            activity_log = json.loads(response.read().decode('utf-8'))
+            logger.info(f"Successfully loaded {len(activity_log)} log entries from cloud.")
+    except Exception as e:
+        logger.error(f"Activity log load error: {e}")
+
+def save_activity_log():
+    global activity_log
+    import urllib.request, urllib.error
+    # Keep only last 7 days (approx 1000 entries max to keep it fast)
+    activity_log = activity_log[-1000:] 
+    
+    data = json.dumps(activity_log).encode('utf-8')
+    req = urllib.request.Request(
+        LOG_BLOB_URL,
+        data=data,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="PUT"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            logger.info("Successfully saved activity log to cloud.")
+    except Exception as e:
+        logger.error(f"Activity log save error: {e}")
+
 load_parents_db()
+load_activity_log()
+# Sync current visible history with the last few items of activity log
+pickup_history = activity_log[-30:]
+pickup_history.reverse() # Dashboard/Billboard expects newest first
 
 # --- Speech worker ---
 async def generate_speech(text, v, r, vol, audio_path):
@@ -232,7 +268,7 @@ def api_tts_preview():
 
 @app.route("/", methods=['GET'])
 def index():
-    return jsonify({"status": "running", "uptime": str(datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))))}), 200
+    return render_template('portal.html')
 
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
@@ -260,6 +296,17 @@ def clear_parent():
     global pickup_history
     pickup_history = [h for h in pickup_history if h["name"] != target_name]
     return "OK", 200
+
+@app.route("/api/history", methods=['GET'])
+@app.route("/pickup/api/history", methods=['GET'])
+def get_full_history():
+    # Return 1 week log
+    return jsonify(activity_log), 200
+
+@app.route("/history", methods=['GET'])
+@app.route("/pickup/history", methods=['GET'])
+def history_page():
+    return render_template('history.html')
 
 @app.route("/get_audio/<filename>", methods=['GET'])
 @app.route("/pickup/get_audio/<filename>", methods=['GET'])
@@ -352,16 +399,51 @@ def handle_message(event):
     elif "即將到達" in msg_text: s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text: s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
     elif "晚點到" in msg_text: s_text, s_label, s_class = "會晚點到，請老師知悉。", "會晚點到", "type-soon"
-    global pickup_history
+    global pickup_history, activity_log
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
-    now_time = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
-    audio_filename = f"audio_{int(time.time())}.mp3"
+    
+    tz = datetime.timezone(datetime.timedelta(hours=8))
+    now = datetime.datetime.now(tz)
+    now_date = now.strftime("%Y-%m-%d")
+    now_time = now.strftime("%H:%M:%S")
+
+    # Filename for audio
+    audio_filename = f"audio_{int(time.time())}_{user_id[-5:]}.mp3"
     audio_full_path = os.path.join(AUDIO_DIR, audio_filename)
-    entry = {"name": parent_name, "status": s_label, "time": now_time, "class": s_class, "speech_text": f"{parent_name} {s_text}", "audio_url": f"/get_audio/{audio_filename}"}
+
+    entry = {
+        "name": parent_name, 
+        "status": s_label, 
+        "date": now_date,
+        "time": now_time, 
+        "class": s_class, 
+        "speech_text": f"{parent_name} {s_text}", 
+        "audio_url": f"/get_audio/{audio_filename}"
+    }
+    
+    # 1. Update Billboard (Fast list)
     pickup_history.insert(0, entry)
     if len(pickup_history) > 30: pickup_history.pop()
+    
+    # 2. Update Persistant Log (Long list)
+    activity_log.append(entry)
+    # Remove logs older than 7 days
+    seven_days_ago = (now - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    activity_log = [l for l in activity_log if l.get("date", "0000-00-00") >= seven_days_ago]
+    save_activity_log()
+
     speech_queue.put((f"{parent_name} {s_text}", audio_full_path))
     line_reply(event.reply_token, f"📢 已廣播：{parent_name} {s_text}")
+
+    # Background audio cleaning
+    def clean_old():
+        now_ts = time.time()
+        for f in os.listdir(AUDIO_DIR):
+            p = os.path.join(AUDIO_DIR, f)
+            if os.path.isfile(p) and os.stat(p).st_mtime < now_ts - 3600:
+                try: os.remove(p)
+                except: pass
+    threading.Thread(target=clean_old, daemon=True).start()
 
 @handler.add(FollowEvent)
 def handle_follow(event):

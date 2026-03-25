@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏫 學生接送管理入口 | 智慧校園系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --accent: #6366f1;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 40%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .portal-container {
+            max-width: 1000px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 4rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            color: #94a3b8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            padding: 3rem 2rem;
+            border-radius: 2rem;
+            border: 1px solid var(--border);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .card:hover {
+            transform: translateY(-15px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .card:hover::before { opacity: 1; }
+
+        .card .icon {
+            font-size: 4rem;
+            transition: transform 0.4s ease;
+        }
+
+        .card:hover .icon { transform: scale(1.2) rotate(5deg); }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .card p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            .header h1 { font-size: 2rem; }
+            .grid { gap: 1.25rem; }
+            .card { padding: 2rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="portal-container">
+        <div class="header">
+            <h1>🏫 智慧接送服務中心</h1>
+            <p>Smart Campus Pickup Management Suite</p>
+        </div>
+
+        <div class="grid">
+            <a href="dashboard" class="card">
+                <div class="icon">💻</div>
+                <h2>即時監控中心</h2>
+                <p>用於教職員管理、語音播報與家長到達確認。即時同步所有訊息。</p>
+            </a>
+            
+            <a href="history" class="card">
+                <div class="icon">📜</div>
+                <h2>歷史接送紀錄</h2>
+                <p>查看最近 7 天的歷史廣播內容與詳細狀態。支援搜尋與報表匯出。</p>
+            </a>
+
+            <a href="billboard" class="card">
+                <div class="icon">📢</div>
+                <h2>室外大型看板</h2>
+                <p>展示於校門口或走廊，專為學生與家長設計的高對比即時播報介面。</p>
+            </a>
+        </div>
+        
+        <div style="margin-top: 5rem; color: #475569; font-size: 0.8rem;">
+            &copy; 2026 智慧校園管理系統 | 雲端核心版本 v2.5
+        </div>
+    </div>
+</body>
+</html>

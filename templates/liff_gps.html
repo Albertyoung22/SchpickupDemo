@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +15,7 @@
             --card-bg: rgba(30, 41, 59, 0.8);
             --text: #f8fafc;
         }
-        
+
         body {
             font-family: 'Outfit', sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
@@ -43,8 +44,15 @@
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .status-icon {
@@ -65,11 +73,17 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
-        .icon-check, .icon-error {
+        .icon-check,
+        .icon-error {
             display: none;
             width: 100%;
             height: 100%;
@@ -131,12 +145,36 @@
             display: none;
         }
 
-        .success { color: #10b981; }
-        .error { color: #ef4444; }
-        .loading { color: var(--primary); }
+        .success {
+            color: #10b981;
+        }
 
+        .error {
+            color: #ef4444;
+        }
+
+        .warning {
+            color: #f59e0b;
+        }
+
+        .loading {
+            color: var(--primary);
+        }
+
+        .help-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            margin-bottom: 24px;
+            border-left: 4px solid var(--primary);
+        }
     </style>
 </head>
+
 <body>
 
     <div class="container">
@@ -148,7 +186,7 @@
 
         <h1 id="title">正在位置校正</h1>
         <p id="desc">請稍候，我們正在確認您是否已經進入校園廣播區域。</p>
-        
+
         <div id="distBadge" class="dist-badge"></div>
 
         <button id="closeBtn" class="btn" onclick="liff.closeWindow()">關閉視窗</button>
@@ -157,9 +195,9 @@
 
     <script>
         // --- 伺服器傳入參數 ---
-        const SCHOOL_LAT = {{ school_lat }}; 
-        const SCHOOL_LNG = {{ school_lng }}; 
-        const MAX_DISTANCE = {{ school_radius }}; 
+        const SCHOOL_LAT = {{ school_lat }};
+        const SCHOOL_LNG = {{ school_lng }};
+        const MAX_DISTANCE = {{ school_radius }};
         const LIFF_ID = "{{ liff_id }}";
 
         const ui = {
@@ -175,15 +213,15 @@
 
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // 公尺
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; 
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
         }
 
         async function init() {
@@ -199,25 +237,45 @@
                     return;
                 }
 
-                // 取得位置啟動
+                // --- 1. 身分驗證 ---
+                ui.title.innerText = "身分驗證中";
+                const profile = await liff.getProfile();
+                const userId = profile.userId;
+
+                try {
+                    const regRes = await fetch(`/api/check_registration?user_id=${userId}`);
+                    const regData = await regRes.json();
+
+                    if (!regData.registered) {
+                        showRegistrationPrompt(regData.help_text);
+                        return;
+                    }
+                    // 已註冊，顯示歡迎訊息
+                    ui.desc.innerText = `歡迎回來，${regData.parent_name}！\n正在為您校正位置...`;
+                } catch (e) {
+                    console.error("Registration check failed", e);
+                    // 如果後端暫時連不上，先假設已註冊但顯示警告，或直接允許 (視需求而定)
+                    // 這裡選擇繼續執行 GPS，但如果是嚴格模式則應報錯
+                }
+
+                // --- 2. 取得位置啟動 ---
                 liff.getLocation().then(async (pos) => {
                     const d = getDistance(pos.latitude, pos.longitude, SCHOOL_LAT, SCHOOL_LNG);
                     ui.dist.innerText = `距離校門：${Math.round(d)} 公尺`;
                     ui.dist.style.display = 'inline-block';
 
                     if (d <= MAX_DISTANCE) {
-                        // 1. 發送廣播訊息
-                        await liff.sendMessages([{ 
-                            type: 'text', 
-                            text: '已到達' 
+                        // 發送廣播訊息
+                        await liff.sendMessages([{
+                            type: 'text',
+                            text: '已到達'
                         }]);
-                        
-                        // 2. 更新介面
+
                         showSuccess("驗證成功", "已偵測到您已抵達，校門口正在為您廣播。");
                         setTimeout(() => liff.closeWindow(), 3000);
-                        
+
                     } else {
-                        showError("超出範圍", `目前距離學校 ${Math.round(d/1000, 1)} 公里，廣播功能僅限於校門口 ${MAX_DISTANCE}m 內使用。`);
+                        showError("超出範圍", `目前距離學校 ${Math.round(d / 1000, 1)} 公里，廣播功能僅限於校門口 ${MAX_DISTANCE}m 內使用。`);
                     }
                 }).catch(err => {
                     showError("定位失敗", "請確認手機已開啟 GPS，並在 LINE 設定中允許本服務存取位置資訊。");
@@ -227,6 +285,26 @@
                 console.error(err);
                 showError("初始化錯誤", "LIFF 無法啟動，請確認連結是否正確。");
             }
+        }
+
+        function showRegistrationPrompt(helpText) {
+            ui.title.innerText = "您尚未完成註冊";
+            ui.title.className = "warning";
+            ui.loader.style.display = 'none';
+            ui.error.style.display = 'block';
+            ui.error.innerText = "🆔";
+
+            ui.desc.innerHTML = `請依照下方引導完成 LINE 註冊後，<br>方可使用智慧接送廣播功能。`;
+
+            // 插入說明文字框
+            const helpBox = document.createElement('div');
+            helpBox.className = 'help-box';
+            helpBox.innerText = helpText;
+            ui.desc.parentNode.insertBefore(helpBox, ui.dist);
+
+            ui.closeBtn.style.display = 'block';
+            ui.retryBtn.style.display = 'block';
+            ui.retryBtn.innerText = "完成註冊後重試";
         }
 
         function showSuccess(title, desc) {
@@ -251,4 +329,5 @@
         window.onload = init;
     </script>
 </body>
+
 </html>

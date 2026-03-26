@@ -39,23 +39,15 @@ VOICE_CODE = "zh-TW-HsiaoChenNeural" # Default: HsiaoChen
 VOICE_RATE = "+0%"
 VOICE_VOLUME = "+0%"
 
-# GPS & LIFF Config
-SCHOOL_LAT = float(os.getenv('SCHOOL_LAT', '25.0330'))
-SCHOOL_LNG = float(os.getenv('SCHOOL_LNG', '121.5654'))
-SCHOOL_RADIUS = int(os.getenv('SCHOOL_RADIUS_METERS', '500'))
-LIFF_ID = os.getenv('LIFF_ID', '')
-
 speech_queue = queue.Queue()
 
 # --- Database & History ---
 PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
-activity_log = []
-LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d25ea-cb7b-7697-954f-36c4351335bd"
 
 HELP_TEXT = (
-    "🛑 【重要通知：您如果尚未完成註冊】\n\n"
+    "🛑 【重要通知：您尚未完成註冊】\n\n"
     "在使用接送廣播功能前，請務必先完成註冊：\n"
     "--------------------------\n"
     "✍️ 註冊方式：直接回覆 #名字\n"
@@ -87,17 +79,6 @@ def line_reply(reply_token, text):
         logger.error(f"Failed to reply via LINE: {e}")
 def load_parents_db():
     global PARENTS_DB
-    blob_url = "https://jsonblob.com/api/jsonBlob/019d25ea-c800-7dca-b145-4edf6ce0cd34"
-    import urllib.request, urllib.error
-    req = urllib.request.Request(blob_url, headers={"Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            PARENTS_DB = json.loads(response.read().decode('utf-8'))
-            logger.info("Successfully loaded DB from jsonblob!")
-            return
-    except Exception as e:
-        logger.error(f"Jsonblob load error: {e}")
-
     if os.path.exists(PARENTS_FILE):
         try:
             with open(PARENTS_FILE, "r", encoding="utf-8") as f:
@@ -108,59 +89,13 @@ def load_parents_db():
     else: PARENTS_DB = {}
 
 def save_parents_db():
-    blob_url = "https://jsonblob.com/api/jsonBlob/019d25ea-c800-7dca-b145-4edf6ce0cd34"
-    import urllib.request, urllib.error
-    data = json.dumps(PARENTS_DB).encode('utf-8')
-    req = urllib.request.Request(
-        blob_url,
-        data=data,
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-        method="PUT"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=5) as response:
-            logger.info("Successfully saved DB to jsonblob!")
-    except Exception as e:
-        logger.error(f"Jsonblob save error: {e}")
-
     try:
         with open(PARENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(PARENTS_DB, f, ensure_ascii=False, indent=4)
     except Exception as e:
         logger.error(f"Error saving {PARENTS_FILE}: {e}")
 
-def load_activity_log():
-    global activity_log
-    import urllib.request, urllib.error
-    req = urllib.request.Request(LOG_BLOB_URL, headers={"Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            activity_log = json.loads(response.read().decode('utf-8'))
-            logger.info("Successfully loaded history log from cloud.")
-    except Exception as e:
-        logger.error(f"Activity log load error: {e}")
-
-def save_activity_log():
-    global activity_log
-    import urllib.request, urllib.error
-    activity_log = activity_log[-1000:]
-    data = json.dumps(activity_log).encode('utf-8')
-    req = urllib.request.Request(
-        LOG_BLOB_URL,
-        data=data,
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-        method="PUT"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=5) as response:
-            logger.info("Successfully saved log to cloud.")
-    except Exception as e:
-        logger.error(f"Log save error: {e}")
-
 load_parents_db()
-load_activity_log()
-pickup_history = activity_log[-30:]
-pickup_history.reverse()
 
 # --- Speech worker thread (Generates MP3 for clients) ---
 async def generate_speech(text, v, r, vol, audio_path):
@@ -198,7 +133,7 @@ threading.Thread(target=speech_worker_thread, daemon=True).start()
 # Home route (Redir to Dashboard)
 @app.route("/", methods=['GET'])
 def index():
-    return render_template('portal.html')
+    return jsonify({"status": "running", "uptime": str(datetime.datetime.now())}), 200
 
 # Web Dashboard (For Teachers)
 @app.route('/api/tts_preview', methods=['POST'])
@@ -234,18 +169,8 @@ def api_tts_preview():
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
 def dashboard():
-    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
+    now_str = datetime.datetime.now().strftime("%H:%M:%S")
     return render_template('dashboard.html', history=pickup_history, now=now_str)
-
-@app.route("/history", methods=['GET'])
-@app.route("/pickup/history", methods=['GET'])
-def history_page():
-    return render_template('history.html')
-
-@app.route("/api/history", methods=['GET'])
-@app.route("/pickup/api/history", methods=['GET'])
-def get_full_history():
-    return jsonify(activity_log), 200
 
 # Large Billboard (For Student Screen)
 @app.route("/billboard", methods=['GET'])
@@ -253,20 +178,11 @@ def get_full_history():
 def billboard():
     return render_template('billboard.html')
 
-# LIFF GPS Check
-@app.route("/liff/gps", methods=['GET'])
-def liff_gps():
-    return render_template('liff_gps.html', 
-                           liff_id=LIFF_ID, 
-                           school_lat=SCHOOL_LAT, 
-                           school_lng=SCHOOL_LNG, 
-                           school_radius=SCHOOL_RADIUS)
-
 # API for clients/billboards to poll status
 @app.route("/api/poll", methods=['GET'])
 @app.route("/pickup/api/poll", methods=['GET'])
 def api_poll():
-    now_str = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime("%H:%M:%S")
+    now_str = datetime.datetime.now().strftime("%H:%M:%S")
     return jsonify({
         "history": pickup_history,
         "now": now_str
@@ -319,68 +235,24 @@ def handle_message(event):
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
     
-    # 🌟 Priority 1: Handle Keywords (Never Broadcast, Guide only)
-    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明", "電話", "聯絡中心"]
-    if any(k in msg_text for k in help_keywords):
-        if "電話" in msg_text or "聯絡中心" in msg_text:
-            line_reply(event.reply_token, f"🏫 學校的電話號碼：{os.getenv('SCHOOL_PHONE', '02-1234-5678')}")
-        else:
-            line_reply(event.reply_token, HELP_TEXT)
-        return
-    
     # 1. Registration Handling
     if msg_text.startswith("#") or msg_text.startswith("＃"):
         new_name = msg_text[1:].strip()
-        if new_name == "取消註冊":
-            if user_id in PARENTS_DB:
-                del PARENTS_DB[user_id]
-                save_parents_db()
-                line_reply(event.reply_token, "🗑️ 已成功取消您的家長註冊。")
-            return
-        elif new_name:
+        if new_name:
             PARENTS_DB[user_id] = new_name
             save_parents_db()
             line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
 
-    # Admin DB Management Commands
-    if msg_text.startswith("@刪除") or msg_text.startswith("＠刪除"):
-        target_name = msg_text[3:].strip()
-        deleted = False
-        for uid, name in list(PARENTS_DB.items()):
-            if name == target_name or name == f"[BANNED]{target_name}":
-                del PARENTS_DB[uid]
-                deleted = True
-        if deleted:
-            save_parents_db()
-            line_reply(event.reply_token, f"✅ 已將「{target_name}」從資料庫移除。")
-        else:
-            line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
+    # Help command / Registration Guide (不會觸發廣播)
+    if msg_text in ["幫助", "註冊", "？", "?", "選單", "身分註冊", "身份註冊"]:
+        line_reply(event.reply_token, HELP_TEXT)
         return
 
-    if msg_text.startswith("@黑名單") or msg_text.startswith("＠黑名單"):
-        target_name = msg_text[4:].strip()
-        banned = False
-        for uid, name in list(PARENTS_DB.items()):
-            if name == target_name:
-                PARENTS_DB[uid] = f"[BANNED]{target_name}"
-                banned = True
-        if banned:
-            save_parents_db()
-            line_reply(event.reply_token, f"⛔ 已將「{target_name}」列入黑名單，該帳號將無法觸發廣播。")
-        else:
-            line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
-        return
     # 2. Check Registration
     if user_id not in PARENTS_DB:
         logger.warning(f"🚨 [未註冊存取] 使用者 {user_id} 嘗試發送訊息: {msg_text}")
         line_reply(event.reply_token, HELP_TEXT)
-        return
-
-    parent_name = PARENTS_DB[user_id]
-    if parent_name.startswith("[BANNED]"):
-        logger.warning(f"🚫 [黑名單攔截] {parent_name} 嘗試發言")
-        line_reply(event.reply_token, "⚠️ 您目前已被管理員限制廣播功能。")
         return
 
     # Process Broadcast Message
@@ -393,17 +265,12 @@ def handle_message(event):
         s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text:
          s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
-    elif "晚點到" in msg_text:
-        s_text, s_label, s_class = "會晚點到，請老師知悉。", "會晚點到", "type-soon"
 
-    global pickup_history, activity_log
+    global pickup_history
     # Remove old record for same parent
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
     
-    tz = datetime.timezone(datetime.timedelta(hours=8))
-    now = datetime.datetime.now(tz)
-    now_date = now.strftime("%Y-%m-%d")
-    now_time = now.strftime("%H:%M:%S")
+    now_time = datetime.datetime.now().strftime("%H:%M:%S")
     
     # Filename for audio (cloud-accessible)
     audio_filename = f"audio_{int(time.time())}_{user_id[-5:]}.mp3"
@@ -412,22 +279,15 @@ def handle_message(event):
     entry = {
         "name": parent_name, 
         "status": s_label, 
-        "date": now_date,
         "time": now_time, 
         "class": s_class,
         "speech_text": f"{parent_name} {s_text}",
         "audio_url": f"/get_audio/{audio_filename}"
     }
     
-    # 1. Update Polling history (Visible)
+    # Store in history
     pickup_history.insert(0, entry)
     if len(pickup_history) > 30: pickup_history.pop()
-    
-    # 2. Update Persistant log (1 week)
-    activity_log.append(entry)
-    seven_days_ago = (now - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
-    activity_log = [l for l in activity_log if l.get("date", "0000-00-00") >= seven_days_ago]
-    save_activity_log()
     
     # Queue audio generation
     speech_queue.put((f"{parent_name} {s_text}", audio_full_path))

@@ -61,7 +61,7 @@ current_rate = "+0%"
 current_volume = "+0%"
 enable_local_play = True  # Enable local MPV playback
 school_phone = "02-1234-5678" # Default School Phone Number
-VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/1353272935064616960" # Cloud settings blob
+VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2979-13c5-7006-9bcf-98a941006c4f" # Cloud settings blob
 
 speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"

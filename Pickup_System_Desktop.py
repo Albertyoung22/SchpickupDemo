@@ -61,14 +61,14 @@ current_rate = "+0%"
 current_volume = "+0%"
 enable_local_play = True  # Enable local MPV playback
 school_phone = "02-1234-5678" # Default School Phone Number
-VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2979-13c5-7006-9bcf-98a941006c4f" # Cloud settings blob
+VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-7936-740c-862f-fe91e9739930" # Cloud settings blob
 
 speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
 activity_log = []
-LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d25ea-cb7b-7697-954f-36c4351335bd"
+LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-74fa-7e9a-9840-3b14b0890057"
 
 def get_help_text():
     return (
@@ -101,7 +101,7 @@ def line_reply(reply_token, text):
 def load_parents_db():
     global PARENTS_DB
     # Free, 0-config JSON storage for permanence
-    blob_url = "https://jsonblob.com/api/jsonBlob/019d25ea-c800-7dca-b145-4edf6ce0cd34"
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d2b5b-7294-7b61-bd70-99b56a819197"
     import urllib.request, urllib.error
 
     req = urllib.request.Request(blob_url, headers={"Accept": "application/json"})
@@ -122,7 +122,7 @@ def load_parents_db():
     else: PARENTS_DB = {}
 
 def save_parents_db():
-    blob_url = "https://jsonblob.com/api/jsonBlob/019d25ea-c800-7dca-b145-4edf6ce0cd34"
+    blob_url = "https://jsonblob.com/api/jsonBlob/019d2b5b-7294-7b61-bd70-99b56a819197"
     import urllib.request, urllib.error
     
     data = json.dumps(PARENTS_DB).encode('utf-8')

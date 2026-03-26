@@ -517,7 +517,20 @@
                     <label for="local-play-check" style="margin: 0; cursor:pointer;">啟用校園音響同步播放 (Local MPV)</label>
                 </div>
 
-                <!-- Voice Options Management Removed -->
+                <div class="form-group">
+                    <label>語音選項管理</label>
+                    <div id="voice-options-editor" style="margin-bottom: 1rem;">
+                        <!-- Voice options will be rendered here -->
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="new-voice-name" placeholder="語音名稱 (例如: 曉臻)" class="form-control"
+                            style="flex: 1;">
+                        <input type="text" id="new-voice-code" placeholder="語音代碼 (例如: zh-TW-HsiaoChenNeural)"
+                            class="form-control" style="flex: 1;">
+                    </div>
+                    <button class="btn btn-secondary" onclick="addVoiceOption()"
+                        style="width: 100%; padding: 0.75rem; border-radius: 0.75rem;">新增語音選項</button>
+                </div>
 
                 <div style="display: flex; gap: 1.25rem; margin-top: 3rem;">
                     <button class="btn" style="flex: 2;" onclick="saveSettings()">儲存並套用</button>
@@ -686,10 +699,52 @@
                     }
                 }
 
-                // Render Voice Options Editor Removed
+                // Render Voice Options Editor
+                renderVoiceOptionsEditor();
             }
 
-            // Management functions removed
+            function renderVoiceOptionsEditor() {
+                const container = document.getElementById('voice-options-editor');
+                if (!container) return;
+                container.innerHTML = Object.entries(settingsData.voice_options).map(([name, code]) => `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem;">
+                        <div style="font-size: 0.9rem;">
+                            <strong style="color: var(--text);">${name}</strong>
+                            <span style="color: var(--text-muted); font-family: monospace; font-size: 0.8rem; margin-left: 0.5rem;">(${code})</span>
+                        </div>
+                        <button style="border: none; background: none; color: var(--danger); cursor: pointer; font-weight: bold;" onclick="deleteVoiceOption('${name}')">移除</button>
+                    </div>
+                `).join('');
+            }
+
+            function addVoiceOption() {
+                const nameInput = document.getElementById('new-voice-name');
+                const codeInput = document.getElementById('new-voice-code');
+                const name = nameInput.value.trim();
+                const code = codeInput.value.trim();
+
+                if (!name || !code) {
+                    alert("請輸入名稱與代碼");
+                    return;
+                }
+
+                settingsData.voice_options[name] = code;
+                nameInput.value = '';
+                codeInput.value = '';
+
+                renderVoiceSettingsUI();
+                renderVoiceOptionsEditor();
+            }
+
+            function deleteVoiceOption(name) {
+                if (Object.keys(settingsData.voice_options).length <= 1) {
+                    alert("至少需保留一個語音選項");
+                    return;
+                }
+                delete settingsData.voice_options[name];
+                renderVoiceSettingsUI();
+                renderVoiceOptionsEditor();
+            }
 
             function updateRangeLabels() {
                 const r = document.getElementById('rate-range').value;

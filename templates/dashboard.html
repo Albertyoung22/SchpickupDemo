@@ -44,7 +44,59 @@
             padding: 2.5rem;
         }
 
-        header {
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .voice-selector-mini {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text);
+            /* Changed to var(--text) for better contrast */
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .voice-selector-mini:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .voice-selector-mini option {
+            background: var(--card-bg);
+            /* Changed to var(--card-bg) */
+            color: var(--text);
+            /* Changed to var(--text) */
+        }
+
+        /* Original header style, now applied to .header class */
+        /* header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -55,7 +107,7 @@
             border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 1.25rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-        }
+        } */
 
         h1 {
             font-size: 1.75rem;
@@ -397,19 +449,20 @@
 
 <body>
     <div class="layout">
-        <header>
-            <div>
+        <div class="header">
+            <div class="header-left">
                 <h1>🏫 智慧接送監控中心</h1>
-                <div id="connection-status" class="status-header">
-                    <div class="status-dot"></div>
-                    <span id="status-text">正在連接伺服器...</span>
-                    <span style="margin: 0 0.5rem; opacity: 0.3;">|</span>
-                    <span>最後更新: <span id="last-update" style="color: var(--primary);">{{ now }}</span></span>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div id="connection-status" class="status-dot"></div>
+                    <span id="status-text" style="color: var(--text-muted); font-size: 0.9rem;">正在連接伺服器...</span>
                 </div>
             </div>
-            <div class="controls" style="display: flex; gap: 0.75rem;">
+            <div class="header-right">
+                <select id="voice-select" class="voice-selector-mini" onchange="saveSettings()"></select>
+                <div class="last-update" style="color: var(--text-muted); font-size: 0.9rem;">最後更新：<span
+                        id="last-update" style="color: var(--primary);">{{ now }}</span></div>
                 <a href="history" class="btn btn-primary"
-                    style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: var(--accent); border-color: var(--accent);">
+                    style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: var(--primary); border-color: var(--primary); padding: 0.6rem 1rem;">
                     📜 接送日誌
                 </a>
                 <button class="btn btn-secondary" onclick="openSettings()"
@@ -417,133 +470,114 @@
                     ⚙️ 系統設定
                 </button>
             </div>
-        </header>
+            </header>
 
-        <div id="history-container" class="history-grid">
-            <div class="empty-state">⏳ 正在同步接送資料...</div>
-        </div>
-    </div>
-
-    <div id="toast" class="toast">✅ 已完成接送處理</div>
-
-    <!-- 音效資源 -->
-    <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-        preload="auto"></audio>
-
-    <!-- Settings Modal (省略部分不變) -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>系統偏好設定</h2>
-                <button class="btn-secondary" onclick="closeSettings()"
-                    style="border:none; background:none; font-size: 1.5rem; cursor:pointer;">✕</button>
-            </div>
-
-            <div class="form-group">
-                <label>系統播報語音</label>
-                <select id="voice-select"></select>
-            </div>
-
-            <div class="form-group">
-                <label>播報語速</label>
-                <input type="range" id="rate-range" min="-50" max="50" step="10" value="0">
-                <div id="rate-val" class="range-val">+0%</div>
-            </div>
-
-            <div class="form-group">
-                <label>播報音量</label>
-                <input type="range" id="volume-range" min="-50" max="50" step="10" value="0">
-                <div id="volume-val" class="range-val">+0%</div>
-            </div>
-
-            <div class="form-group">
-                <label>學校校務處電話</label>
-                <input type="text" id="school-phone-input" placeholder="例如: 02-1234-5678">
-            </div>
-
-            <div class="form-group"
-                style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8fafc; border-radius: 1rem;">
-                <input type="checkbox" id="local-play-check" checked
-                    style="width: 1.5rem; height: 1.5rem; accent-color: var(--primary);">
-                <label for="local-play-check" style="margin: 0; cursor:pointer;">啟用校園音響同步播放 (Local MPV)</label>
-            </div>
-
-            <!-- Voice Options Management -->
-            <div style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                <label
-                    style="display: block; margin-bottom: 0.75rem; color: var(--text-muted); font-size: 0.95rem; font-weight: 600;">管理語音清單
-                    (VOICE_OPTIONS)</label>
-                <div id="voice-options-editor" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <!-- Rows will be injected here -->
-                </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <input type="text" id="new-voice-name" placeholder="名稱 (例如: 曉曉)"
-                        style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.5rem;">
-                    <input type="text" id="new-voice-code" placeholder="代碼 (例如: zh-CN-XiaoxiaoNeural)"
-                        style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.5rem;">
-                    <button class="btn" style="padding: 0.5rem 1rem; box-shadow: none;"
-                        onclick="addVoiceOption()">新增</button>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 1.25rem; margin-top: 3rem;">
-                <button class="btn" style="flex: 2;" onclick="saveSettings()">儲存並套用</button>
-                <button class="btn btn-secondary" style="flex: 1;" onclick="closeSettings()">取消</button>
+            <div id="history-container" class="history-grid">
+                <div class="empty-state">⏳ 正在同步接送資料...</div>
             </div>
         </div>
-    </div>
 
-    <script>
-        let currentHistory = [];
-        let firstLoad = true;
+        <div id="toast" class="toast">✅ 已完成接送處理</div>
 
-        async function pollData() {
-            try {
-                const response = await fetch('/api/poll');
-                if (!response.ok) throw new Error();
-                const data = await response.json();
+        <!-- 音效資源 -->
+        <audio id="notification-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+            preload="auto"></audio>
 
-                updateStatus(true);
-                updateUI(data.history, data.now);
-            } catch (err) {
-                updateStatus(false);
-                console.error('Polling error:', err);
+        <!-- Settings Modal (省略部分不變) -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>系統偏好設定</h2>
+                    <button class="btn-secondary" onclick="closeSettings()"
+                        style="border:none; background:none; font-size: 1.5rem; cursor:pointer;">✕</button>
+                </div>
+
+                <!-- Voice select removed from here (now in header) -->
+
+                <div class="form-group">
+                    <label>播報語速</label>
+                    <input type="range" id="rate-range" min="-50" max="50" step="10" value="0">
+                    <div id="rate-val" class="range-val">+0%</div>
+                </div>
+
+                <div class="form-group">
+                    <label>播報音量</label>
+                    <input type="range" id="volume-range" min="-50" max="50" step="10" value="0">
+                    <div id="volume-val" class="range-val">+0%</div>
+                </div>
+
+                <div class="form-group">
+                    <label>學校校務處電話</label>
+                    <input type="text" id="school-phone-input" placeholder="例如: 02-1234-5678">
+                </div>
+
+                <div class="form-group"
+                    style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8fafc; border-radius: 1rem;">
+                    <input type="checkbox" id="local-play-check" checked
+                        style="width: 1.5rem; height: 1.5rem; accent-color: var(--primary);">
+                    <label for="local-play-check" style="margin: 0; cursor:pointer;">啟用校園音響同步播放 (Local MPV)</label>
+                </div>
+
+                <!-- Voice Options Management Removed -->
+
+                <div style="display: flex; gap: 1.25rem; margin-top: 3rem;">
+                    <button class="btn" style="flex: 2;" onclick="saveSettings()">儲存並套用</button>
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="closeSettings()">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let currentHistory = [];
+            let firstLoad = true;
+
+            async function pollData() {
+                try {
+                    const response = await fetch('/api/poll');
+                    if (!response.ok) throw new Error();
+                    const data = await response.json();
+
+                    updateStatus(true);
+                    updateUI(data.history, data.now);
+                } catch (err) {
+                    updateStatus(false);
+                    console.error('Polling error:', err);
+                }
             }
-        }
 
-        function updateStatus(isOnline) {
-            const el = document.getElementById('connection-status');
-            const txt = document.getElementById('status-text');
-            if (isOnline) {
-                el.classList.add('online');
-                txt.innerText = "系統連線中 (Live)";
-            } else {
-                el.classList.remove('online');
-                txt.innerText = "連線中斷，正在重試...";
+            function updateStatus(isOnline) {
+                const el = document.getElementById('connection-status');
+                const txt = document.getElementById('status-text');
+                if (isOnline) {
+                    el.classList.add('online');
+                    txt.innerText = "系統連線中 (Live)";
+                } else {
+                    el.classList.remove('online');
+                    txt.innerText = "連線中斷，正在重試...";
+                }
             }
-        }
 
-        function updateUI(history, now) {
-            const container = document.getElementById('history-container');
-            document.getElementById('last-update').innerText = now;
+            function updateUI(history, now) {
+                const container = document.getElementById('history-container');
+                document.getElementById('last-update').innerText = now;
 
-            if (!history || history.length === 0) {
-                container.innerHTML = '<div class="empty-state">🍃 靜候接送訊息中...</div>';
-                currentHistory = [];
+                if (!history || history.length === 0) {
+                    container.innerHTML = '<div class="empty-state">🍃 靜候接送訊息中...</div>';
+                    currentHistory = [];
+                    firstLoad = false;
+                    return;
+                }
+
+                // 檢查是否有新通知 (歷史紀錄變多或第一筆不同)
+                if (!firstLoad && history.length > currentHistory.length && history[0].time !== (currentHistory[0] ? currentHistory[0].time : '')) {
+                    playNotification();
+                }
+
+                if (JSON.stringify(history) === JSON.stringify(currentHistory)) return;
+                currentHistory = history;
                 firstLoad = false;
-                return;
-            }
 
-            // 檢查是否有新通知 (歷史紀錄變多或第一筆不同)
-            if (!firstLoad && history.length > currentHistory.length && history[0].time !== (currentHistory[0] ? currentHistory[0].time : '')) {
-                playNotification();
-            }
-
-            if (JSON.stringify(history) === JSON.stringify(currentHistory)) return;
-            currentHistory = history;
-            firstLoad = false;
-
-            container.innerHTML = history.map(item => `
+                container.innerHTML = history.map(item => `
                 <div class="card ${item.class || ''}">
                     <div class="card-header">
                         <span class="parent-name">${item.name}</span>
@@ -558,195 +592,156 @@
                     </div>
                 </div>
             `).join('');
-        }
+            }
 
-        async function clearParent(name) {
-            try {
-                const res = await fetch('/api/clear_parent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
-                });
-                if (res.ok) {
-                    showToast();
-                    pollData(); // 立即重新整理
-                }
-            } catch (err) { console.error('Clear parent error:', err); }
-        }
-
-        function playNotification() {
-            const sound = document.getElementById('notification-sound');
-            sound.currentTime = 0;
-            sound.play().catch(e => console.log("Audio play blocked by browser."));
-        }
-
-        function showToast() {
-            const toast = document.getElementById('toast');
-            toast.classList.add('visible');
-            setTimeout(() => toast.classList.remove('visible'), 3000);
-        }
-
-        function openSettings() {
-            document.getElementById('settingsModal').classList.add('active');
-            loadSettingsFromAPI();
-        }
-
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('active');
-        }
-
-        let settingsData = null; // Store full settings locally for UI sync
-
-        async function loadSettingsFromAPI() {
-            let settings;
-            if (window.pywebview && window.pywebview.api) {
-                settings = await window.pywebview.api.get_settings();
-            } else {
+            async function clearParent(name) {
                 try {
-                    const res = await fetch('/api/get_settings');
-                    if (!res.ok) throw new Error("API error");
-                    settings = await res.json();
-                } catch (e) {
-                    console.error("Failed to load settings via Web API:", e);
-                    return;
-                }
-            }
-
-            if (settings) {
-                // FALLBACK: If voice_options is empty, provide system defaults
-                if (!settings.voice_options || Object.keys(settings.voice_options).length === 0) {
-                    console.warn("⚠️ API returned empty voice_options. Using hardcoded defaults.");
-                    settings.voice_options = {
-                        "曉臻 (台灣腔)": "zh-TW-HsiaoChenNeural",
-                        "雲哲 (台灣腔男)": "zh-TW-YunJheNeural",
-                        "曉曉 (最溫柔)": "zh-CN-XiaoxiaoNeural",
-                        "雲希 (最親切)": "zh-CN-YunxiNeural"
-                    };
-                }
-                settingsData = settings;
-                renderVoiceSettingsUI();
-            }
-        }
-
-        function renderVoiceSettingsUI() {
-            if (!settingsData) return;
-
-            const vSelect = document.getElementById('voice-select');
-            const currentVoice = settingsData.voice;
-
-            vSelect.innerHTML = Object.entries(settingsData.voice_options).map(([name, code]) =>
-                `<option value="${code}" ${currentVoice === code ? 'selected' : ''}>${name}</option>`
-            ).join('');
-
-            const rate = parseInt(settingsData.rate.replace('%', ''));
-            const vol = parseInt(settingsData.volume.replace('%', ''));
-            document.getElementById('rate-range').value = rate;
-            document.getElementById('volume-range').value = vol;
-            document.getElementById('school-phone-input').value = settingsData.school_phone || "";
-            updateRangeLabels();
-
-            const localPlayCheck = document.getElementById('local-play-check');
-            if (localPlayCheck) {
-                localPlayCheck.checked = settingsData.local_play || false;
-                if (settingsData.local_play === undefined) {
-                    localPlayCheck.parentElement.style.display = 'none';
-                }
-            }
-
-            // Render Voice Options Editor
-            renderVoiceOptionsEditor();
-        }
-
-        function renderVoiceOptionsEditor() {
-            const container = document.getElementById('voice-options-editor');
-            container.innerHTML = Object.entries(settingsData.voice_options).map(([name, code]) => `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 0.5rem;">
-                    <div style="font-size: 0.9rem;">
-                        <strong style="color: var(--text);">${name}</strong>
-                        <span style="color: var(--text-muted); font-family: monospace; font-size: 0.8rem; margin-left: 0.5rem;">(${code})</span>
-                    </div>
-                    <button style="border: none; background: none; color: var(--danger); cursor: pointer; font-weight: bold;" onclick="deleteVoiceOption('${name}')">移除</button>
-                </div>
-            `).join('');
-        }
-
-        function addVoiceOption() {
-            const nameInput = document.getElementById('new-voice-name');
-            const codeInput = document.getElementById('new-voice-code');
-            const name = nameInput.value.trim();
-            const code = codeInput.value.trim();
-
-            if (!name || !code) {
-                alert("請輸入名稱與代碼");
-                return;
-            }
-
-            settingsData.voice_options[name] = code;
-            nameInput.value = '';
-            codeInput.value = '';
-
-            renderVoiceSettingsUI();
-        }
-
-        function deleteVoiceOption(name) {
-            if (Object.keys(settingsData.voice_options).length <= 1) {
-                alert("至少需保留一個語音選項");
-                return;
-            }
-            delete settingsData.voice_options[name];
-            renderVoiceSettingsUI();
-        }
-
-        function updateRangeLabels() {
-            const r = document.getElementById('rate-range').value;
-            const v = document.getElementById('volume-range').value;
-            const rateVal = document.getElementById('rate-val');
-            const volumeVal = document.getElementById('volume-val');
-            if (rateVal) rateVal.innerText = (r >= 0 ? '+' : '') + r + '%';
-            if (volumeVal) volumeVal.innerText = (v >= 0 ? '+' : '') + v + '%';
-        }
-
-        async function saveSettings() {
-            const rate = document.getElementById('rate-range').value;
-            const vol = document.getElementById('volume-range').value;
-            const settings = {
-                voice: document.getElementById('voice-select').value,
-                rate: (rate >= 0 ? '+' : '') + rate + '%',
-                volume: (vol >= 0 ? '+' : '') + vol + '%',
-                local_play: document.getElementById('local-play-check') ? document.getElementById('local-play-check').checked : false,
-                school_phone: document.getElementById('school-phone-input').value,
-                voice_options: settingsData.voice_options // Include updated voice options
-            };
-
-            if (window.pywebview && window.pywebview.api) {
-                await window.pywebview.api.update_settings(settings);
-                closeSettings();
-            } else {
-                try {
-                    const res = await fetch('/api/update_settings', {
+                    const res = await fetch('/api/clear_parent', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(settings)
+                        body: JSON.stringify({ name: name })
                     });
                     if (res.ok) {
-                        closeSettings();
                         showToast();
-                    } else {
-                        alert("儲存設定失敗");
+                        pollData(); // 立即重新整理
                     }
-                } catch (e) {
-                    console.error("Save settings error:", e);
-                    alert("網路連線錯誤");
+                } catch (err) { console.error('Clear parent error:', err); }
+            }
+
+            function playNotification() {
+                const sound = document.getElementById('notification-sound');
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Audio play blocked by browser."));
+            }
+
+            function showToast() {
+                const toast = document.getElementById('toast');
+                toast.classList.add('visible');
+                setTimeout(() => toast.classList.remove('visible'), 3000);
+            }
+
+            function openSettings() {
+                document.getElementById('settingsModal').classList.add('active');
+                loadSettingsFromAPI();
+            }
+
+            function closeSettings() {
+                document.getElementById('settingsModal').classList.remove('active');
+            }
+
+            let settingsData = null; // Store full settings locally for UI sync
+
+            async function loadSettingsFromAPI() {
+                let settings;
+                if (window.pywebview && window.pywebview.api) {
+                    settings = await window.pywebview.api.get_settings();
+                } else {
+                    try {
+                        const res = await fetch('/api/get_settings');
+                        if (!res.ok) throw new Error("API error");
+                        settings = await res.json();
+                    } catch (e) {
+                        console.error("Failed to load settings via Web API:", e);
+                        return;
+                    }
+                }
+
+                if (settings) {
+                    // FALLBACK: If voice_options is empty, provide system defaults
+                    if (!settings.voice_options || Object.keys(settings.voice_options).length === 0) {
+                        console.warn("⚠️ API returned empty voice_options. Using hardcoded defaults.");
+                        settings.voice_options = {
+                            "曉臻 (台灣腔)": "zh-TW-HsiaoChenNeural",
+                            "雲哲 (台灣腔男)": "zh-TW-YunJheNeural",
+                            "曉曉 (最溫柔)": "zh-CN-XiaoxiaoNeural",
+                            "雲希 (最親切)": "zh-CN-YunxiNeural"
+                        };
+                    }
+                    settingsData = settings;
+                    renderVoiceSettingsUI();
                 }
             }
-        }
 
-        document.getElementById('rate-range').oninput = updateRangeLabels;
-        document.getElementById('volume-range').oninput = updateRangeLabels;
+            function renderVoiceSettingsUI() {
+                if (!settingsData) return;
 
-        setInterval(pollData, 3000);
-        pollData();
-    </script>
+                const vSelect = document.getElementById('voice-select');
+                const currentVoice = settingsData.voice;
+
+                vSelect.innerHTML = Object.entries(settingsData.voice_options).map(([name, code]) =>
+                    `<option value="${code}" ${currentVoice === code ? 'selected' : ''}>${name}</option>`
+                ).join('');
+
+                const rate = parseInt(settingsData.rate.replace('%', ''));
+                const vol = parseInt(settingsData.volume.replace('%', ''));
+                document.getElementById('rate-range').value = rate;
+                document.getElementById('volume-range').value = vol;
+                document.getElementById('school-phone-input').value = settingsData.school_phone || "";
+                updateRangeLabels();
+
+                const localPlayCheck = document.getElementById('local-play-check');
+                if (localPlayCheck) {
+                    localPlayCheck.checked = settingsData.local_play || false;
+                    if (settingsData.local_play === undefined) {
+                        localPlayCheck.parentElement.style.display = 'none';
+                    }
+                }
+
+                // Render Voice Options Editor Removed
+            }
+
+            // Management functions removed
+
+            function updateRangeLabels() {
+                const r = document.getElementById('rate-range').value;
+                const v = document.getElementById('volume-range').value;
+                const rateVal = document.getElementById('rate-val');
+                const volumeVal = document.getElementById('volume-val');
+                if (rateVal) rateVal.innerText = (r >= 0 ? '+' : '') + r + '%';
+                if (volumeVal) volumeVal.innerText = (v >= 0 ? '+' : '') + v + '%';
+            }
+
+            async function saveSettings() {
+                const rate = document.getElementById('rate-range').value;
+                const vol = document.getElementById('volume-range').value;
+                const settings = {
+                    voice: document.getElementById('voice-select').value,
+                    rate: (rate >= 0 ? '+' : '') + rate + '%',
+                    volume: (vol >= 0 ? '+' : '') + vol + '%',
+                    local_play: document.getElementById('local-play-check') ? document.getElementById('local-play-check').checked : false,
+                    school_phone: document.getElementById('school-phone-input').value,
+                    voice_options: settingsData.voice_options // Include updated voice options
+                };
+
+                if (window.pywebview && window.pywebview.api) {
+                    await window.pywebview.api.update_settings(settings);
+                    closeSettings();
+                } else {
+                    try {
+                        const res = await fetch('/api/update_settings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(settings)
+                        });
+                        if (res.ok) {
+                            closeSettings();
+                            showToast();
+                        } else {
+                            alert("儲存設定失敗");
+                        }
+                    } catch (e) {
+                        console.error("Save settings error:", e);
+                        alert("網路連線錯誤");
+                    }
+                }
+            }
+
+            document.getElementById('rate-range').oninput = updateRangeLabels;
+            document.getElementById('volume-range').oninput = updateRangeLabels;
+
+            setInterval(pollData, 3000);
+            pollData();
+        </script>
 </body>
 
 </html>

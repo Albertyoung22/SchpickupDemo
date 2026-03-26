@@ -47,6 +47,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "static", "audio")
 if not os.path.exists(AUDIO_DIR): os.makedirs(AUDIO_DIR)
 
+# Default options (will be overwritten by cloud if exists)
 VOICE_OPTIONS = {
     "曉臻 (台灣腔)": "zh-TW-HsiaoChenNeural",
     "雲哲 (台灣腔男)": "zh-TW-YunJheNeural",
@@ -61,14 +62,6 @@ current_volume = "+0%"
 enable_local_play = True  # Enable local MPV playback
 school_phone = "02-1234-5678" # Default School Phone Number
 VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/1353272935064616960" # Cloud settings blob
-
-# Default options (will be overwritten by cloud if exists)
-VOICE_OPTIONS = {
-    "曉臻 (台灣腔)": "zh-TW-HsiaoChenNeural",
-    "雲哲 (台灣腔男)": "zh-TW-YunJheNeural",
-    "曉曉 (最溫柔)": "zh-CN-XiaoxiaoNeural",
-    "雲希 (最親切)": "zh-CN-YunxiNeural"
-}
 
 speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"

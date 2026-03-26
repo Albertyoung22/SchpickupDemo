@@ -41,7 +41,7 @@
         .layout {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2.5rem;
+            padding: 1rem;
         }
 
         .header {
@@ -159,15 +159,15 @@
 
         .history-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 0.75rem;
         }
 
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 1.25rem;
-            padding: 1.75rem;
+            border-radius: 1rem;
+            padding: 1.25rem;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
             position: relative;
@@ -444,6 +444,28 @@
         .toast.visible {
             transform: translateY(0);
         }
+
+        /* Mobile Density Optimization */
+        @media (max-width: 640px) {
+            .layout { padding: 0.5rem; }
+            .header { padding: 0.75rem 1rem; gap: 0.5rem; margin-bottom: 0.75rem; border-radius: 0.75rem; }
+            .header h1 { font-size: 1.25rem; }
+            .header-right { gap: 0.35rem; }
+            .voice-selector-mini { padding: 0.4rem 0.6rem; font-size: 0.8rem; border-radius: 0.5rem; }
+            .btn { padding: 0.5rem 0.8rem; font-size: 0.8rem; border-radius: 0.5rem; }
+            
+            .history-grid { gap: 0.6rem; }
+            .card { padding: 0.85rem 1rem; border-radius: 0.75rem; border-width: 1px; }
+            .card::before { top: 0.75rem; height: 1.75rem; width: 4px; }
+            .card-header { margin-bottom: 0.5rem; }
+            .parent-name { font-size: 1.15rem; }
+            .time { font-size: 0.8rem; }
+            .status-text { font-size: 0.85rem; padding: 0.25rem 0.65rem; border-radius: 0.5rem; }
+            .action-container { margin-top: 0.5rem; padding-top: 0.5rem; }
+            .btn-confirm { padding: 0.4rem; font-size: 0.8rem; width: 100%; justify-content: center; }
+            .empty-state { padding: 3rem 1rem; font-size: 1rem; }
+            .toast { left: 1rem; right: 1rem; bottom: 1.5rem; text-align: center; }
+        }
     </style>
 </head>
 
@@ -592,7 +614,10 @@
                 container.innerHTML = history.map(item => `
                 <div class="card ${item.class || ''}">
                     <div class="card-header">
-                        <span class="parent-name">${item.name}</span>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <span class="parent-name">${item.name}</span>
+                            ${item.plate ? `<span style="font-size:0.9rem; color:var(--primary); font-weight:bold; font-family:monospace;">🚗 ${item.plate}</span>` : ''}
+                        </div>
                         <span class="time">🕙 ${item.time}</span>
                     </div>
                     <div class="status-text">${item.status}</div>

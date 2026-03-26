@@ -75,8 +75,8 @@ def get_help_text():
         "🛑 【重要通知：您如未完成註冊】\n\n"
         "在使用接送廣播功能前，請務必先完成註冊：\n"
         "--------------------------\n"
-        "✍️ 註冊方式：直接回覆 #名字\n"
-        "範例：#三年二班王小明爸爸\n"
+        "✍️ 註冊方式：直接回覆 #名字+車號\n"
+        "範例：#三年二班王小明爸爸+ABC-1234\n"
         "--------------------------\n\n"
         "⚠️ 【使用注意事項】：\n"
         "1. 廣播內容將直接顯示於校門口大螢幕並由語音讀出，請勿輸入非必要資訊。\n"
@@ -442,17 +442,31 @@ def handle_message(event):
         
     # 2. Handle Name Registration (#NewName)
     if msg_text.startswith("#") or msg_text.startswith("＃"):
-        new_name = msg_text[1:].strip()
-        if new_name == "取消註冊":
+        reg_info = msg_text[1:].strip()
+        if reg_info == "取消註冊":
             if user_id in PARENTS_DB:
                 del PARENTS_DB[user_id]
                 save_parents_db()
                 line_reply(event.reply_token, "🗑️ 已成功取消您的家長註冊。")
             return
-        elif new_name:
-            PARENTS_DB[user_id] = new_name
+        elif reg_info:
+            # 支援 名字+車號 格式
+            new_name, car_plate = reg_info, ""
+            if "+" in reg_info:
+                parts = reg_info.split("+", 1)
+                new_name, car_plate = parts[0].strip(), parts[1].strip()
+            elif "＋" in reg_info:
+                parts = reg_info.split("＋", 1)
+                new_name, car_plate = parts[0].strip(), parts[1].strip()
+            
+            PARENTS_DB[user_id] = {"name": new_name, "plate": car_plate}
             save_parents_db()
-            line_reply(event.reply_token, f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】\n\n現在您可以點選下方選單開始呼叫孩子囉！")
+            msg = f"🎉 註冊成功！\n\n您的廣播識別為：【{new_name}】"
+            if car_plate:
+                msg += f"\n已登錄車號：【{car_plate}】"
+            else:
+                msg += "\n(目前未曾登錄車號，可輸入 #名字+車號 更新)"
+            line_reply(event.reply_token, f"{msg}\n\n現在您可以點選下方選單開始呼叫孩子囉！")
         return
         
     if msg_text.startswith("@刪除") or msg_text.startswith("＠刪除"):
@@ -487,7 +501,15 @@ def handle_message(event):
         line_reply(event.reply_token, get_help_text())
         return
         
-    parent_name = PARENTS_DB[user_id]
+    parent_info = PARENTS_DB[user_id]
+    if isinstance(parent_info, dict):
+        parent_name = parent_info.get("name", "家長")
+        car_plate = parent_info.get("plate", "")
+    else:
+        # 兼容舊的純字串格式
+        parent_name = parent_info
+        car_plate = ""
+
     if parent_name.startswith("[BANNED]"):
         line_reply(event.reply_token, "⚠️ 您目前已被管理員限制廣播功能。")
         return
@@ -509,7 +531,8 @@ def handle_message(event):
     audio_full_path = os.path.join(AUDIO_DIR, audio_filename)
 
     entry = {
-        "name": parent_name, 
+        "name": parent_name,
+        "plate": car_plate,
         "status": s_label, 
         "date": now_date,
         "time": now_time, 

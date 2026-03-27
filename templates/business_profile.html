@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 編輯商業簡介 - 接送系統</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-hover: #0284c7;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg);
+            background-image: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .layout {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem 2rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        .help-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.4rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            color: var(--text);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            background: #f8fafc;
+            padding: 1.25rem;
+            border-radius: 1rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-item input {
+            width: 1.1rem;
+            height: 1.1rem;
+            accent-color: var(--primary);
+        }
+
+        .avatar-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .avatar-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            overflow: hidden;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 2rem;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1000;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .toast.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 640px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .card {
+                padding: 1.25rem;
+            }
+
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <div class="header">
+            <h1>📝 編輯商業簡介</h1>
+            <a href="/dashboard" class="btn btn-secondary">返回控制台</a>
+        </div>
+
+        <form id="profile-form">
+            <div class="card">
+                <h2>👤 基本檔案</h2>
+                <div class="avatar-section">
+                    <div class="avatar-preview" id="avatar-preview">🤖</div>
+                    <div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>帳號名稱</label>
+                            <input type="text" id="account_name" name="account_name" class="form-control"
+                                placeholder="接送系統Demo">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>狀態消息</label>
+                    <textarea id="status_message" name="status_message" class="form-control" rows="2"
+                        placeholder="顯示於基本檔案的簡介訊息"></textarea>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <input type="checkbox" id="show_followers" name="show_followers"
+                        style="width: 1.2rem; height: 1.2rem; accent-color: var(--primary);">
+                    <label for="show_followers" style="margin: 0;">顯示追蹤者人數</label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📍 聯絡與資訊</h2>
+                <div class="form-group">
+                    <label>地址／地圖資訊</label>
+                    <input type="text" id="address" name="address" class="form-control" placeholder="尚未登錄">
+                </div>
+
+                <div class="form-group">
+                    <label>營業時間</label>
+                    <input type="text" id="business_hours" name="business_hours" class="form-control"
+                        placeholder="例如: 08:00 - 17:00">
+                </div>
+
+                <div class="form-group">
+                    <label>網站</label>
+                    <input type="url" id="website" name="website" class="form-control"
+                        placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label>電話號碼・LINE通話</label>
+                    <input type="text" id="phone" name="phone" class="form-control" placeholder="02-1234-5678">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔘 底部按鍵 (最多選擇 3 種)</h2>
+                <div class="checkbox-group" id="button-options">
+                    <label class="checkbox-item"><input type="checkbox" value="加入好友"> 加入好友</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看新商品・菜單"> 查看新商品・菜單</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看優惠活動資訊"> 查看優惠活動資訊</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看特價消息"> 查看特價消息</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看活動資訊"> 查看活動資訊</label>
+                    <label class="checkbox-item"><input type="checkbox" value="聯絡我們"> 聯絡我們</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看貼文・文章"> 查看貼文・文章</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看品牌資訊"> 查看品牌資訊</label>
+                    <label class="checkbox-item"><input type="checkbox" value="進行預約"> 進行預約</label>
+                    <label class="checkbox-item"><input type="checkbox" value="查看營業時間"> 查看營業時間</label>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 4rem; text-align: center;">
+                <button type="submit" class="btn" style="padding: 1rem 3rem; font-size: 1.1rem;">儲存並公開變更</button>
+                <p class="help-text" style="margin-top: 1rem;">變更內容可能需要數個工作天才會套用至 LINE 應用程式顯示頁面。</p>
+            </div>
+        </form>
+    </div>
+
+    <div id="toast" class="toast">✅ 設定已儲存</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const form = document.getElementById('profile-form');
+            const toast = document.getElementById('toast');
+            const buttonOptions = document.querySelectorAll('#button-options input');
+
+            // Load current config
+            try {
+                const res = await fetch('/api/business_config');
+                const data = await res.json();
+
+                if (data) {
+                    document.getElementById('account_name').value = data.account_name || "";
+                    document.getElementById('status_message').value = data.status_message || "";
+                    document.getElementById('show_followers').checked = data.show_followers || false;
+                    document.getElementById('address').value = data.address || "";
+                    document.getElementById('business_hours').value = data.business_hours || "";
+                    document.getElementById('website').value = data.website || "";
+                    document.getElementById('phone').value = data.phone || "";
+
+                    const selectedButtons = data.bottom_buttons || [];
+                    buttonOptions.forEach(opt => {
+                        if (selectedButtons.includes(opt.value)) opt.checked = true;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load business config:", err);
+            }
+
+            // Limit button selections to 3
+            buttonOptions.forEach(opt => {
+                opt.addEventListener('change', () => {
+                    const checkedCount = document.querySelectorAll('#button-options input:checked').length;
+                    if (checkedCount > 3) {
+                        opt.checked = false;
+                        alert("最多隻能選擇 3 個按鍵");
+                    }
+                });
+            });
+
+            // Save config
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const selectedButtons = Array.from(document.querySelectorAll('#button-options input:checked')).map(opt => opt.value);
+
+                const config = {
+                    account_name: document.getElementById('account_name').value,
+                    status_message: document.getElementById('status_message').value,
+                    show_followers: document.getElementById('show_followers').checked,
+                    address: document.getElementById('address').value,
+                    business_hours: document.getElementById('business_hours').value,
+                    website: document.getElementById('website').value,
+                    phone: document.getElementById('phone').value,
+                    bottom_buttons: selectedButtons
+                };
+
+                try {
+                    const res = await fetch('/api/business_config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+
+                    if (res.ok) {
+                        showToast();
+                    } else {
+                        alert("儲存失敗");
+                    }
+                } catch (err) {
+                    console.error("Save error:", err);
+                    alert("網路錯誤");
+                }
+            });
+
+            function showToast() {
+                toast.classList.add('visible');
+                setTimeout(() => toast.classList.remove('visible'), 3000);
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -589,6 +589,7 @@ def handle_postback(event):
 
 # --- Desktop UI Implementation ---
 def run_app():
+    import os
     # Detect if running on Render (Cloud Server)
     is_render = os.environ.get("RENDER") is not None
     port = int(os.environ.get("PORT", 5000))

@@ -92,7 +92,11 @@
 
         .card.lg { grid-column: span 2; }
         .card.md { grid-column: span 1; }
-        .card.accent { background: var(--text); color: white; }
+        .card.accent { 
+            background: linear-gradient(135deg, #007AFF 0%, #00C7BE 100%); 
+            color: white; 
+            border: none;
+        }
 
         .card .icon {
             font-size: 44px;
@@ -116,7 +120,7 @@
             line-height: 1.5;
         }
 
-        .card.accent p { color: #86868B; }
+        .card.accent p { color: rgba(255, 255, 255, 0.8); }
 
         .card .badge {
             position: absolute;

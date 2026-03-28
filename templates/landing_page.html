@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/app_icon.png" type="image/png">
     <link rel="stylesheet" href="/static/landing_page_styles.css">
 </head>
 <body>
@@ -95,13 +96,13 @@
     </section>
 
     <!-- Dual Benefit Section (NEW) -->
-    <section class="benefits-section dark-gradient">
+    <section class="benefits-section light-gradient-bg">
         <div class="container">
             <div class="benefit-header text-center" data-reveal="up">
                 <h2>雙向便利：老師更輕鬆，家長更省心</h2>
             </div>
             <div class="benefit-items">
-                <div class="benefit-item" data-reveal="left">
+                <div class="benefit-item light-card" data-reveal="left">
                     <div class="b-icon">👩‍🏫</div>
                     <div class="b-text">
                         <h4>對於老師：不再體力消耗</h4>
@@ -109,7 +110,7 @@
                         <div class="b-stats">節省 40% 放學人力</div>
                     </div>
                 </div>
-                <div class="benefit-item" data-reveal="right">
+                <div class="benefit-item light-card" data-reveal="right">
                     <div class="b-icon">🚗</div>
                     <div class="b-text">
                         <h4>對於家長：優雅等待無壓力</h4>
@@ -129,7 +130,7 @@
                 <h2>旗艦級接送管理模組</h2>
             </div>
             <div class="bento-grid">
-                <div class="bento-item lg-grid" data-reveal="up" onclick="openModal('reg-modal')">
+                <div class="bento-item lg-grid vibrant-gradient-1" data-reveal="up" onclick="openModal('reg-modal')">
                     <div class="bento-content">
                         <span class="icon">💬</span>
                         <h3>LINE Bot 零負擔註冊</h3>
@@ -139,14 +140,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="bento-item md-grid glass" data-reveal="up" onclick="openModal('gps-modal')">
+                <div class="bento-item md-grid glass-light" data-reveal="up" onclick="openModal('gps-modal')">
                     <div class="bento-content">
                         <span class="icon">📍</span>
                         <h3>GPS 定位地理圍欄</h3>
                         <p>只有當家長進校門 500M 才能點擊按鈕，精準攔截錯誤呼叫。</p>
                     </div>
                 </div>
-                <div class="bento-item md-grid dark" data-reveal="up" onclick="openModal('voice-modal')">
+                <div class="bento-item md-grid vibrant-gradient-2" data-reveal="up" onclick="openModal('voice-modal')">
                     <div class="bento-content">
                         <span class="icon">🔊</span>
                         <h3>AI 智慧廣播播音</h3>
@@ -166,11 +167,14 @@
     </section>
 
     <!-- Scenario Section -->
-    <section id="scenario" class="scenario-section light-bg">
+    <section id="scenario" class="scenario-section light-bg-gradient">
         <div class="container">
             <div class="scenario-layout" data-reveal="up">
                 <div class="scenario-visual">
-                    <img src="/static/orderly_pickup_scenario_1774689795163.png" alt="Orderly Pickup Workflow" class="scenario-img">
+                    <img src="/static/orderly_pickup_afterschool_center_scenario_1774719718216.png" alt="Orderly Pickup Workflow" class="scenario-img">
+                    <div class="scenario-overlay-vibrant">
+                        <img src="/static/schpickup_line_rich_menu_mockup_vibrant_1774720105454.png" alt="LINE Rich Menu Mockup" class="mini-mockup-floating">
+                    </div>
                 </div>
                 <div class="scenario-steps">
                     <h3>無感操作、有序放學</h3>
@@ -178,7 +182,7 @@
                         <div class="s-num">01</div>
                         <div class="s-info">
                             <h4>家長一鍵回報</h4>
-                            <p>抵達圍欄內，按下 LINE 訊息按鈕，系統瞬間將其推播至校內。</p>
+                            <p>抵達圍欄內，透過 LINE 官網圖文選單按鍵，家長只需輕點一下，免打字，系統瞬間將其推播至校內。</p>
                         </div>
                     </div>
                     <div class="s-step">
@@ -201,46 +205,45 @@
     </section>
 
     <!-- Voice Test Section -->
-    <section id="voice" class="voice-section dark">
+    <section id="voice" class="voice-section light-bg">
         <div class="container text-center">
             <div class="voice-header" data-reveal="up">
                 <h2>AI 擬真語音，專屬校園的溫暖播報</h2>
                 <p>這不只是播音，更是展現校園精緻經營的門面</p>
             </div>
             <div class="voice-cards" data-reveal="up">
-                <div class="voice-card">
+                <div class="voice-card-light">
                     <h4>溫婉女音 (台灣)</h4>
                     <p>語調親切流暢，最適合幼兒與低年級</p>
-                    <button class="play-btn" data-voice="zh-TW-HsiaoChenNeural" data-text="老師您好，我是您的智慧播報小助手，我會用溫柔的聲音幫您通知小朋友放學喔！"><span>▶</span> 試聽</button>
+                    <button class="play-btn-light" data-voice="zh-TW-HsiaoChenNeural" data-text="老師您好，我是您的智慧播報小助手，我會用溫柔的聲音幫您通知小朋友放學喔！"><span>▶</span> 試聽</button>
                 </div>
-                <div class="voice-card active">
+                <div class="voice-card-light active">
                     <h4>專業男音 (台灣)</h4>
                     <p>嗓音渾厚清晰，校園廣播標準首選</p>
-                    <button class="play-btn" data-voice="zh-TW-YunJheNeural" data-text="親愛的家長您好，學生接送系統正為您服務，請在校門口稍候。"><span>▶</span> 試聽</button>
+                    <button class="play-btn-light" data-voice="zh-TW-YunJheNeural" data-text="親愛的家長您好，學生接送系統正為您服務，請在校門口稍候。"><span>▶</span> 試聽</button>
                 </div>
-                <div class="voice-card">
+                <div class="voice-card-light">
                     <h4>優雅女音 (清晰)</h4>
                     <p>聲線透亮高雅，適合長時間播放</p>
-                    <button class="play-btn" data-voice="zh-CN-XiaoxiaoNeural" data-text="現在為您播報全校放學資訊，請相關班級的同學準備到校門口集合。"><span>▶</span> 試聽</button>
+                    <button class="play-btn-light" data-voice="zh-CN-XiaoxiaoNeural" data-text="現在為您播報全校放學資訊，請相關班級的同學準備到校門口集合。"><span>▶</span> 試聽</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Modals (Simplified for brevity but should exist) -->
+    <!-- Modals -->
     <div id="modal-overlay" class="modal-overlay">
-        <!-- Modals would go here with same IDs -->
         <div id="reg-modal" class="modal"><button class="close-modal">&times;</button><div class="modal-body"><h2>LINE 智慧通報</h2><p>整合 LINE Notify 與 LIFF 介面，不僅節省開發大量專屬 App 的成本，還能享有極高的穩定性與推送速度。</p></div></div>
         <div id="gps-modal" class="modal"><button class="close-modal">&times;</button><div class="modal-body"><h2>GPS 定位攔截技術</h2><p>基於 HTML5 Geolocation API，僅在家長進入校園指定地理範圍時才啟動「抵達發送」按鈕，有效解決車位不足與排隊混亂。</p></div></div>
         <div id="voice-modal" class="modal"><button class="close-modal">&times;</button><div class="modal-body"><h2>AI 擬真人聲播報</h2><p>多位高品質 AI 聲線供選擇，支援多語系，播報聲音清晰溫暖，提升校園環境質感。</p></div></div>
         <div id="dashboard-modal" class="modal"><button class="close-modal">&times;</button><div class="modal-body"><h2>雲端看板管理系統</h2><p>提供 Real-time 資料同步，任何裝置皆可連線，支援多校區管理與即時接送紀錄查詢。</p></div></div>
     </div>
 
-    <footer class="footer-pro">
+    <footer class="footer-light">
         <div class="container footer-grid">
             <div class="footer-info">
                 <div class="logo">Schpickup<span>.</span></div>
-                <p>為校園打造更智慧的未來。我們致力於利用物聯網與人工智慧技術，簡化教育行政，守護孩子安全。</p>
+                <p>為校園打造更智慧的未來。守護孩子安全，讓放學時光變得輕鬆而美好。</p>
                 <div class="safety-badge">🛡️ 已通過資料傳輸安全加密</div>
             </div>
             <div class="footer-links">

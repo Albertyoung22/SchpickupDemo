@@ -289,12 +289,14 @@ def api_tts_preview():
     try:
         d = request.json or {}
         text = d.get('text')
+        voice = d.get('voice', current_voice)
+        rate = d.get('rate', current_rate)
+
         if not text:
             return jsonify(ok=False, error="No text"), 400
 
         async def _gen():
-            # Use module's current_voice and current_rate
-            tts = edge_tts.Communicate(text, current_voice, rate=current_rate)
+            tts = edge_tts.Communicate(text, voice, rate=rate)
             out = io.BytesIO()
             async for chunk in tts.stream():
                 if chunk["type"] == "audio":
@@ -337,7 +339,7 @@ def api_update_settings():
         v_opts = data.get("voice_options")
         if v_opts and isinstance(v_opts, dict) and len(v_opts) > 0:
             VOICE_OPTIONS = v_opts
-            logger.info("⚙️ [選單更新] 語音清單已更新並驗證。")
+            logger.info("⚙️ [選單更新] 語音長度已更新並驗證。")
         
         save_voice_config()
         logger.info(f"⚙️ [設定更新] 語音內容已變更為: {current_voice}")
@@ -362,6 +364,10 @@ def api_check_registration():
 @app.route("/", methods=['GET'])
 def index():
     return render_template('portal.html')
+
+@app.route("/landing", methods=['GET'])
+def landing():
+    return render_template('landing_page.html')
 
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
@@ -482,7 +488,7 @@ def handle_message(event):
         else:
             line_reply(event.reply_token, f"⚠️ 找不到名為「{target_name}」的家長。")
         return
-
+    
     if msg_text.startswith("@黑名單") or msg_text.startswith("＠黑名單"):
         target_name = msg_text[4:].strip()
         banned = False
@@ -579,20 +585,7 @@ def handle_postback(event):
     # Process postback data (if any)
     data = event.postback.data
     # For now, we treat postback data similarly to messages if they trigger a broadcast
-    # However, usually postback is used for specific hidden commands.
-    # If the rich menu labels match what we handle in handle_message, 
-    # we can redirect or handle it here.
-    
-    # If postback data is just a text to be handled like a message:
-    class MockMessage:
-        def __init__(self, text): self.text = text
-    class MockEvent:
-        def __init__(self, reply_token, source, message):
-            self.reply_token = reply_token
-            self.source = source
-            self.message = message
-            
-    handle_message(MockEvent(event.reply_token, event.source, MockMessage(data)))
+    handle_message(event)
 
 # --- Desktop UI Implementation ---
 def run_app():
@@ -614,13 +607,14 @@ def run_app():
         logger.info(f"🏠 [環境檢測] 正在本地桌面模式執行 (Port {port})。")
         threading.Thread(target=lambda: app.run(host='127.0.0.1', port=port, debug=False, use_reloader=False), daemon=True).start()
         time.sleep(1.5)
-        webview.create_window(
-            '🏫 學生接送智慧監控中心', 
-            f'http://127.0.0.1:{port}/dashboard', 
-            js_api=desktop_api,
-            width=1024, height=768, confirm_close=True
-        )
-        webview.start()
+        if webview:
+            webview.create_window(
+                '🏫 學生接送智慧監控中心', 
+                f'http://127.0.0.1:{port}/dashboard', 
+                js_api=desktop_api,
+                width=1024, height=768, confirm_close=True
+            )
+            webview.start()
 
 if __name__ == "__main__":
     run_app()

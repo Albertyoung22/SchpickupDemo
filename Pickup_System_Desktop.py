@@ -369,6 +369,10 @@ def index():
 def landing():
     return render_template('landing_page.html')
 
+@app.route("/manual", methods=['GET'])
+def manual():
+    return render_template('manual.html')
+
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
 def dashboard():

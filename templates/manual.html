@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schpickup | 系統操作全攻略 - 智慧放學指南</title>
+    <link rel="icon" href="/static/app_icon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007AFF;
+            --secondary: #5856D6;
+            --success: #34C759;
+            --warning: #FF9500;
+            --bg: #F2F2F7;
+            --text: #1C1C1E;
+            --white: #FFFFFF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+        .head-banner { background: linear-gradient(135deg, var(--primary), var(--secondary)); padding: 60px 20px; color: white; text-align: center; }
+        .head-banner h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 10px; }
+        .head-banner p { font-size: 1.1rem; opacity: 0.9; }
+
+        .container { max-width: 900px; margin: -40px auto 100px; padding: 0 20px; }
+        .tab-nav { display: flex; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 5px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: none; font-weight: 700; cursor: pointer; border-radius: 12px; transition: 0.3s; color: #666; font-size: 1rem; }
+        .tab-btn.active { background: var(--white); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .guide-section { display: none; background: var(--white); border-radius: 32px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.05); }
+        .guide-section.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .step-block { margin-bottom: 50px; }
+        .step-title { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .step-num { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+        .step-title h3 { font-size: 1.6rem; color: #333; }
+
+        .visual-mockup { background: #f8fafc; border-radius: 20px; padding: 20px; margin-bottom: 20px; border: 1px solid #eee; text-align: center; }
+        .visual-img { border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 100%; height: auto; }
+
+        .info-tip { background: #e0f2fe; border-left: 5px solid var(--primary); padding: 15px 20px; border-radius: 8px; margin-top: 15px; color: #0369a1; font-weight: 600; }
+        .warning-tip { background: #fff7ed; border-left: 5px solid var(--warning); padding: 15px 20px; border-radius: 8px; margin-top: 15px; color: #9a3412; font-weight: 600; }
+
+        .footer-action { text-align: center; margin-top: 50px; }
+        .btn-back { display: inline-block; padding: 15px 35px; background: var(--white); color: var(--primary); border-radius: 30px; text-decoration: none; font-weight: 700; border: 2px solid var(--primary); transition: 0.3s; }
+        .btn-back:hover { background: var(--primary); color: white; }
+
+        @media (max-width: 600px) {
+            .head-banner h1 { font-size: 2rem; }
+            .guide-section { padding: 25px; }
+            .tab-btn { font-size: 0.9rem; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="head-banner">
+        <h1>📘 系統操作全攻略</h1>
+        <p>跟著這份指南，讓智慧接送在校園完美運行</p>
+    </header>
+
+    <div class="container">
+        <nav class="tab-nav">
+            <button class="tab-btn active" onclick="showTab('parent')">📱 家長 LINE</button>
+            <button class="tab-btn" onclick="showTab('teacher')">👩‍🏫 監控中心</button>
+            <button class="tab-btn" onclick="showTab('billboard')">📢 校門看板</button>
+            <button class="tab-btn" onclick="showTab('admin')">⚙️ 系統設定</button>
+        </nav>
+
+        <!-- Parent Section -->
+        <section id="parent-guide" class="guide-section active">
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">1</div> <h3>登錄註冊 (#指令)</h3></div>
+                <p>家長初次使用時，請在 LINE 對話框輸入註冊指令。格式為：<code>#名字+車號</code>。</p>
+                <div class="visual-mockup">
+                    <div style="font-family: monospace; background: #222; color: #34C759; padding: 15px; border-radius: 10px; display: inline-block;">
+                        #三年二班王小明爸爸+ABC-1234
+                    </div>
+                </div>
+                <div class="info-tip">✨ 小祕訣：若您要更改姓名或車號，直接重新輸入新指令即可覆蓋。</div>
+            </div>
+
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">2</div> <h3>使用圖文選單</h3></div>
+                <p>註冊完成後，您會看到下方出現繽紛的圖文選單。當您進入「學校圍欄範圍」內，點擊「已抵達」或是「即將到達」。</p>
+                <div class="visual-mockup">
+                    <img src="/static/schpickup_line_rich_menu_mockup_vibrant_1774720105454.png" class="visual-img" style="max-height: 400px;">
+                </div>
+                <div class="warning-tip">⚠️ 注意：若您在離校過遠的地方點擊，系統會提示您「不在圍欄範圍內」，無法進行廣播。</div>
+            </div>
+        </section>
+
+        <!-- Teacher Section -->
+        <section id="teacher-guide" class="guide-section">
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">1</div> <h3>登入戰情室 (Dashboard)</h3></div>
+                <p>在電腦或平板開啟監控網頁。畫面會依照家長抵達的「順序」自動排列名單。</p>
+                <div class="visual-mockup">
+                    <img src="/static/billboard_smart_voice_ui_1774683751487.png" class="visual-img">
+                </div>
+            </div>
+
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">2</div> <h3>手動確認與清除</h3></div>
+                <p>當班導師看到孩子上車後，請點擊名字旁邊的「確認」按鈕。該筆資訊會自動消失，並留存在系統歷史紀錄中。</p>
+                <div class="info-tip">📁 歷史紀錄：點選導覽列的「歷史紀錄」可以查看過去一週所有的接送明細報表。</div>
+            </div>
+        </section>
+
+        <!-- Billboard Section (NEW) -->
+        <section id="billboard-guide" class="guide-section">
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">📡</div> <h3>校門口大螢幕看板</h3></div>
+                <p>將此頁面 <code>/billboard</code> 投影至校門口大螢幕。系統會自動以「全螢幕」展示最新接送進度，並帶有呼吸燈動態效果。</p>
+            </div>
+
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">🔊</div> <h3>語音自動播報解鎖</h3></div>
+                <p>為了確保背景語音能夠自動循環播放，開啟網頁後請務必點擊右下角的 **「🔊 點擊解鎖背景語音」** 按鈕。一旦點擊，系統即可在螢幕關閉時依然維持語音廣播。</p>
+                <div class="visual-mockup">
+                    <div style="background: linear-gradient(135deg, #0ea5e9, #10b981); color: white; padding: 10px 20px; border-radius: 12px; display: inline-block; font-weight: 800;">
+                        🔊 點擊解鎖背景語音
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Section -->
+        <section id="admin-guide" class="guide-section">
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">⚙️</div> <h3>廣播設定</h3></div>
+                <p>在設定面板中，您可以隨時更換播音員。包含曉臻(女)、雲哲(男)等多種高品質 AI 聲線。</p>
+            </div>
+
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">📡</div> <h3>環境與硬體</h3></div>
+                <p>為了獲得最佳播音品質，建議監控電腦外接一對清晰的喇叭。系統支援背景自動播放，請確保瀏覽器的音訊權限已解鎖。</p>
+                <div class="warning-tip">🔊 本地播放器建議：安裝 <code>mpv</code> 可以讓播音與視窗網頁分開，減少延遲。</div>
+            </div>
+        </section>
+
+        <div class="footer-action">
+            <a href="/landing" class="btn-back">⬅️ 返回首頁</a>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all
+            document.querySelectorAll('.guide-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            // Show target
+            document.getElementById(tabId + '-guide').classList.add('active');
+            
+            // Activate button
+            const btns = document.querySelectorAll('.tab-btn');
+            if(tabId === 'parent') btns[0].classList.add('active');
+            if(tabId === 'teacher') btns[1].classList.add('active');
+            if(tabId === 'billboard') btns[2].classList.add('active');
+            if(tabId === 'admin') btns[3].classList.add('active');
+        }
+    </script>
+</body>
+</html>

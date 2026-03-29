@@ -60,6 +60,7 @@
     </header>
 
     <div class="container">
+    <div class="container">
         <nav class="tab-nav">
             <button class="tab-btn active" onclick="showTab('parent')">📱 家長 LINE</button>
             <button class="tab-btn" onclick="showTab('teacher')">👩‍🏫 監控中心</button>
@@ -73,60 +74,110 @@
                 <div class="step-title"><div class="step-num">1</div> <h3>登錄註冊 (#指令)</h3></div>
                 <p>家長初次使用時，請在 LINE 對話框輸入註冊指令。格式為：<code>#名字+車號</code>。</p>
                 <div class="visual-mockup">
-                    <div style="font-family: monospace; background: #222; color: #34C759; padding: 15px; border-radius: 10px; display: inline-block;">
-                        #三年二班王小明爸爸+ABC-1234
-                    </div>
+                    <img src="/static/manual_line_registration_success_mockup_vibrant_v2.png" class="visual-img" style="max-height: 450px;">
+                    <p style="font-size: 0.8rem; color: #999; margin-top: 10px;">圖：LINE 註冊成功示意圖</p>
                 </div>
-                <div class="info-tip">✨ 小祕訣：若您要更改姓名或車號，直接重新輸入新指令即可覆蓋。</div>
+                <div class="info-tip">✨ 小祕訣：若您要更改姓名或車號，直接重新輸入新指令即可覆蓋。系統會自動根據您的 LINE ID 更新對應資料。</div>
             </div>
 
             <div class="step-block">
-                <div class="step-title"><div class="step-num">2</div> <h3>使用圖文選單</h3></div>
-                <p>註冊完成後，您會看到下方出現繽紛的圖文選單。當您進入「學校圍欄範圍」內，點擊「已抵達」或是「即將到達」。</p>
+                <div class="step-title"><div class="step-num">2</div> <h3>圖文選單操作</h3></div>
+                <p>當您進入「學校地理圍欄」範圍內，LINE 下方會出現專屬選單。請依照您的狀態點擊對應按鈕：</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                    <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; border: 1px solid #bbf7d0;">
+                        <b style="color: #166534;">🟢 已抵達</b><br><small>立即將您的到場資訊送至校門看板與辦公室。</small>
+                    </div>
+                    <div style="background: #fffbeb; padding: 15px; border-radius: 12px; border: 1px solid #fef3c7;">
+                        <b style="color: #92400e;">🟡 即將到達</b><br><small>預計 5 分鐘內抵達，讓老師能預先導引學生。</small>
+                    </div>
+                </div>
                 <div class="visual-mockup">
                     <img src="/static/schpickup_line_rich_menu_mockup_vibrant_1774720105454.png" class="visual-img" style="max-height: 400px;">
                 </div>
-                <div class="warning-tip">⚠️ 注意：若您在離校過遠的地方點擊，系統會提示您「不在圍欄範圍內」，無法進行廣播。</div>
+                <div class="warning-tip">⚠️ 防呆機制：若您在離校過遠的地方點擊，系統會提示「位置不符」，無法廣播，避免誤觸造成混亂。</div>
             </div>
         </section>
 
         <!-- Teacher Section -->
         <section id="teacher-guide" class="guide-section">
             <div class="step-block">
-                <div class="step-title"><div class="step-num">1</div> <h3>登入戰情室 (Dashboard)</h3></div>
-                <p>在電腦或平板開啟監控網頁。畫面會依照家長抵達的「順序」自動排列名單。</p>
+                <div class="step-title"><div class="step-num">📋</div> <h3>監控中心即時名單</h3></div>
+                <p>老師在平板或電腦開啟監控網頁。畫面會依照家長抵達的「精準順序」自動排序名單。</p>
+                <div class="visual-mockup">
+                    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; text-align: left; padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 10px;">
+                            <b style="color: #0ea5e9;">👨‍👩‍👧‍👦 目前待接送學生</b>
+                            <span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 50px; font-size: 12px;">LIVE</span>
+                        </div>
+                        <div style="background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <div><b>三年二班 王小明</b><br><small>爸爸 已到達門口 (16:02)</small></div>
+                            <button style="background: #10b981; color: white; border: none; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 700;">✅ 確認離校</button>
+                        </div>
+                        <div style="background: #f8fafc; padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <div><b>五年一班 李曉華</b><br><small>媽媽 已到達門口 (16:04)</small></div>
+                            <button style="background: #10b981; color: white; border: none; padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 700;">✅ 確認離校</button>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #999; margin-top: 10px;">圖：監控中心介面模組示意 (介面非常直覺)</p>
+                </div>
+            </div>
+
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">📊</div> <h3>離校記錄歸檔</h3></div>
+                <p>當老師點擊「確認離校」後，該資訊會從大螢幕消失，並自動記錄在「歷史日誌」中，方便日後查詢與管理。</p>
+                <div class="info-tip">📁 歷史查核：點選「接送日誌」可以回溯查看一週內所有接送的精確時間點。</div>
+            </div>
+        </section>
+
+        <!-- Billboard Section -->
+        <section id="billboard-guide" class="guide-section">
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">📺</div> <h3>大螢幕看板設置</h3></div>
+                <p>將此頁面 <code>/billboard</code> 投射至校園大門口顯示器。系統使用「大文字、高對比」設計，確保在戶外陽光下依然清晰可見。</p>
                 <div class="visual-mockup">
                     <img src="/static/billboard_smart_voice_ui_1774683751487.png" class="visual-img">
                 </div>
             </div>
 
             <div class="step-block">
-                <div class="step-title"><div class="step-num">2</div> <h3>手動確認與清除</h3></div>
-                <p>當班導師看到孩子上車後，請點擊名字旁邊的「確認」按鈕。該筆資訊會自動消失，並留存在系統歷史紀錄中。</p>
-                <div class="info-tip">📁 歷史紀錄：點選導覽列的「歷史紀錄」可以查看過去一週所有的接送明細報表。</div>
-            </div>
-        </section>
-
-        <!-- Billboard Section (NEW) -->
-        <section id="billboard-guide" class="guide-section">
-            <div class="step-block">
-                <div class="step-title"><div class="step-num">📡</div> <h3>校門口大螢幕看板</h3></div>
-                <p>將此頁面 <code>/billboard</code> 投影至校門口大螢幕。系統會自動以「全螢幕」展示最新接送進度，並帶有呼吸燈動態效果。</p>
-            </div>
-
-            <div class="step-block">
-                <div class="step-title"><div class="step-num">🔊</div> <h3>語音自動播報解鎖</h3></div>
-                <p>為了確保背景語音能夠自動循環播放，開啟網頁後請務必點擊右下角的 **「🔊 點擊解鎖背景語音」** 按鈕。一旦點擊，系統即可在螢幕關閉時依然維持語音廣播。</p>
+                <div class="step-title"><div class="step-num">🔊</div> <h3>語音自動播報鎖定</h3></div>
+                <p>為了確保背景語音能夠跨分頁循環播報，開啟網頁後請務必點擊右下角的閃爍按鈕。</p>
                 <div class="visual-mockup">
-                    <div style="background: linear-gradient(135deg, #0ea5e9, #10b981); color: white; padding: 10px 20px; border-radius: 12px; display: inline-block; font-weight: 800;">
+                    <div style="background: linear-gradient(135deg, #0ea5e9, #10b981); color: white; padding: 15px 30px; border-radius: 16px; display: inline-block; font-weight: 800; font-size: 1.2rem; box-shadow: 0 10px 25px rgba(10, 160, 200, 0.3); animation: pulse 2s infinite;">
                         🔊 點擊解鎖背景語音
                     </div>
                 </div>
+                <div class="info-tip">💡 專家建議：建議在大門口主電腦使用 Chrome 瀏覽器，並設定「開機自動啟動全螢幕」。</div>
             </div>
         </section>
 
         <!-- Admin Section -->
         <section id="admin-guide" class="guide-section">
+            <div class="step-block">
+                <div class="step-title"><div class="step-num">⚙️</div> <h3>語音聲線與速度切換</h3></div>
+                <p>在監控中心點選「語音設定」，可從雲端同步最新的擬真聲線資料庫。</p>
+                <div style="background: #f1f5f9; border-radius: 16px; padding: 25px; margin: 20px 0;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 700;">目前播報聲音：</label>
+                        <select style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                            <option>曉臻 (台灣腔) - 推薦 ⭐</option>
+                            <option>雲哲 (台灣腔男)</option>
+                            <option>曉曉 (最溫柔)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 700;">語速：</label>
+                            <input type="range" style="width: 100%;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 700;">音量：</label>
+                            <input type="range" style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
             <div class="step-block">
                 <div class="step-title"><div class="step-num">⚙️</div> <h3>廣播設定</h3></div>
                 <p>在設定面板中，您可以隨時更換播音員。包含曉臻(女)、雲哲(男)等多種高品質 AI 聲線。</p>

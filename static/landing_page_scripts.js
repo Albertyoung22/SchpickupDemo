@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 3. Real Voice Preview using API
-    const playButtons = document.querySelectorAll('.play-btn');
+    const playButtons = document.querySelectorAll('.play-btn, .play-btn-light');
     const audioPlayer = new Audio();
 
     playButtons.forEach(btn => {

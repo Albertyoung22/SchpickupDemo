@@ -7,3 +7,5 @@ flask-cors==5.0.1
 httpx==0.28.1
 pywebview==5.1
 pyserial==3.5
+gtts==2.5.1
+requests==2.32.3

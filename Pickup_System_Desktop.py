@@ -7,6 +7,9 @@ import logging
 import queue
 import time
 import datetime
+import serial
+import requests
+from gtts import gTTS
 try:
     import webview
 except ImportError:
@@ -63,12 +66,36 @@ enable_local_play = True  # Enable local MPV playback
 school_phone = "02-1234-5678" # Default School Phone Number
 VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-7936-740c-862f-fe91e9739930" # Cloud settings blob
 
+# --- 4-Relay Configuration ---
+RELAY4_PORT = os.getenv("RELAY4_PORT", "COM5") 
+
+def control_usb_relay4(ch: int, on: bool):
+    """控制 4-Relay 第 ch 路繼電器（1~4） - 採用 LCUS-4 協定"""
+    if ch not in (1, 2, 3, 4): return False
+    on_flag = 1 if on else 0
+    payload = bytes([0xA0, ch, on_flag, (0xA0 + ch + on_flag) & 0xFF])
+    
+    try:
+        # Use short timeout to avoid blocking UI too long
+        with serial.Serial(RELAY4_PORT, 9600, timeout=0.5) as ser:
+            ser.write(payload)
+            ser.flush()
+            logger.info(f"Relay {ch} set to {'ON' if on else 'OFF'} via {RELAY4_PORT}")
+            return True
+    except Exception as e:
+        logger.error(f"Relay Control Error ({RELAY4_PORT}): {e}")
+        return False
+
 speech_queue = queue.Queue()
 PARENTS_FILE = "parents.json"
 PARENTS_DB = {}
 pickup_history = []
 activity_log = []
 LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-74fa-7e9a-9840-3b14b0890057"
+CLOUD_URL = os.getenv("CLOUD_URL", "https://schpickupdemo.onrender.com")
+
+# --- Cloud Relay Command Buffer (Only used in Cloud mode) ---
+pending_relay_commands = []
 
 def get_help_text():
     return (
@@ -227,6 +254,17 @@ async def generate_speech(text, v, r, vol, audio_path):
     try:
         communicate = edge_tts.Communicate(text, v, rate=r, volume=vol)
         await communicate.save(audio_path)
+    except Exception as e:
+        logger.warning(f"⚠️ [Edge-TTS 失敗] 嘗試使用 gTTS 備援: {e}")
+        try:
+            # Fallback to gTTS
+            tts = gTTS(text=text, lang='zh-tw')
+            tts.save(audio_path)
+        except Exception as ge:
+            logger.error(f"❌ [TTS 全部失敗] {ge}")
+            return
+
+    try:
         if enable_local_play:
             import subprocess
             import shutil
@@ -252,6 +290,41 @@ def speech_worker_thread():
         speech_queue.task_done()
 
 threading.Thread(target=speech_worker_thread, daemon=True).start()
+
+# --- Weather & Location Helpers ---
+def _get_server_location():
+    """ 自動偵測伺服器位置 """
+    res = {"lat": 25.0330, "lon": 121.5654, "city": "台北市"}
+    try:
+        r = requests.get("http://ip-api.com/json/?fields=status,lat,lon,city&lang=zh-CN", timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("status") == "success":
+                res["lat"] = data.get("lat", res["lat"])
+                res["lon"] = data.get("lon", res["lon"])
+                res["city"] = data.get("city") or res["city"]
+    except: pass
+    return res
+
+def _get_weather_report():
+    """ 取得目前天氣概況文字 """
+    loc = _get_server_location()
+    try:
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={loc['lat']}&longitude={loc['lon']}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto"
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200: return "無法取得氣象資料"
+        data = r.json().get("current", {})
+        temp = data.get("temperature_2m", "?")
+        code = data.get("weather_code", 0)
+        
+        status = "晴朗"
+        if code in (1, 2, 3): status = "多雲"
+        elif 51 <= code <= 65: status = "有雨"
+        elif code >= 95: status = "雷雨"
+        
+        now_str = datetime.datetime.now().strftime("%H點%M分")
+        return f"現在時間 {now_str}，所在位置 {loc['city']}，目前氣溫 {temp} 度，天氣狀況：{status}。"
+    except: return "氣象資料讀取失敗"
 
 # --- WebView API ---
 class DesktopAPI:
@@ -425,6 +498,28 @@ def get_audio(filename):
         return resp
     return "No audio found", 404
 
+# --- Relay Cloud Command APIs (Cloud Side) ---
+@app.route("/api/relay/send", methods=['POST'])
+def api_relay_send():
+    """ 接收來自 Web (Billboard/Dashboard) 的繼電器指令 """
+    data = request.json
+    if not data: return jsonify(ok=False), 400
+    ch = data.get("ch")
+    on = data.get("on", True)
+    if ch in (1,2,3,4):
+        pending_relay_commands.append({"ch": ch, "on": on})
+        logger.info(f"☁️ [雲端指令暫存] Relay {ch} -> {'ON' if on else 'OFF'}")
+        return jsonify(ok=True)
+    return jsonify(ok=False), 400
+
+@app.route("/api/relay/get", methods=['GET'])
+def api_relay_get():
+    """ 讓本地端程式來「領取」待執行的指令 """
+    global pending_relay_commands
+    cmds = list(pending_relay_commands)
+    pending_relay_commands = [] # 領完即焚
+    return jsonify(cmds)
+
 @app.route("/", methods=['POST'])
 @app.route("/pickup", methods=['POST'], strict_slashes=False)
 def callback():
@@ -448,6 +543,38 @@ def handle_message(event):
             line_reply(event.reply_token, f"🏫 學校的電話號碼：{school_phone}")
         else:
             line_reply(event.reply_token, get_help_text())
+        return
+
+    # 🌟 Priority 1.5: Relay Control Keywords (#relay1 on/off)
+    if msg_text.lower().startswith("#relay"):
+        cmd = msg_text[6:].strip() # Get "1 on" etc.
+        try:
+            # Check for space separation: "#relay1 on"
+            parts = cmd.split()
+            if not parts: return
+            
+            ch_str = parts[0]
+            action = parts[1].lower() if len(parts) > 1 else "on"
+            
+            ch_num = int(ch_str)
+            if 1 <= ch_num <= 4:
+                is_on = action in ("on", "open", "啟動", "開")
+                if control_usb_relay4(ch_num, is_on):
+                    status_text = "啟動" if is_on else "關閉"
+                    line_reply(event.reply_token, f"✅ Relay {ch_num} {status_text}成功")
+                else:
+                    line_reply(event.reply_token, f"❌ Relay {ch_num} 控制失敗 (埠: {RELAY4_PORT})")
+                return
+        except (ValueError, IndexError): pass
+
+    # 🌟 Priority 1.6: Weather Trigger (#天氣)
+    if msg_text.startswith("#天氣") or msg_text.lower() == "weather":
+        report = _get_weather_report()
+        line_reply(event.reply_token, f"🌤️ 目前氣象資訊：\n\n{report}")
+        # 同時語音播報
+        audio_filename = f"weather_{int(time.time())}.mp3"
+        audio_full_path = os.path.join(AUDIO_DIR, audio_filename)
+        speech_queue.put((report, audio_full_path))
         return
         
     # 2. Handle Name Registration (#NewName)
@@ -524,7 +651,10 @@ def handle_message(event):
         line_reply(event.reply_token, "⚠️ 您目前已被管理員限制廣播功能。")
         return
     s_text, s_label, s_class = msg_text, "通知", "type-soon"
-    if "已到達" in msg_text: s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
+    if "已到達" in msg_text: 
+        s_text, s_label, s_class = "已到達校門口，請儘快前往大門。", "已到達校門", "type-arrived"
+        # 自動啟動擴大機 (Relay 1)
+        control_usb_relay4(1, True)
     elif "即將到達" in msg_text: s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text: s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
     elif "晚點到" in msg_text: s_text, s_label, s_class = "會晚點到，請老師知悉。", "會晚點到", "type-soon"
@@ -574,6 +704,31 @@ def handle_message(event):
                 try: os.remove(p)
                 except: pass
     threading.Thread(target=clean_old, daemon=True).start()
+
+# --- Local Relay Poller (Local Side) ---
+def local_relay_poller():
+    """ 只有在本地模式執行：向雲端輪詢是否有繼電器指令 """
+    if os.environ.get("RENDER"): return # 雲端環境不執行此輪詢
+    
+    logger.info(f"🛰️ [遠端控制啟動] 開始向雲端輪詢繼電器指令 ({CLOUD_URL})...")
+    import requests
+    while True:
+        try:
+            # 向雲端領取指令
+            r = requests.get(f"{CLOUD_URL}/api/relay/get", timeout=5)
+            if r.status_code == 200:
+                cmds = r.json()
+                for c in cmds:
+                    ch = c.get("ch")
+                    on = c.get("on")
+                    logger.info(f"⚡ [收到雲端指令] 控制繼電器 {ch} 為 {'ON' if on else 'OFF'}")
+                    control_usb_relay4(ch, on)
+        except Exception as e:
+            # logger.debug(f"Cloud poll error: {e}") 
+            pass
+        time.sleep(1.2) # 輪詢頻率
+
+threading.Thread(target=local_relay_poller, daemon=True).start()
 
 @handler.add(FollowEvent)
 def handle_follow(event):

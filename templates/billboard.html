@@ -56,6 +56,7 @@
             font-weight: 900;
             background: linear-gradient(135deg, #0369a1, #0ea5e9);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
         }
@@ -94,21 +95,39 @@
             position: relative;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
+
         .row:hover {
             transform: translateY(-2px);
             box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
         }
 
         @keyframes slideIn {
-            from { transform: translateX(-30px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(-30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         /* 顏色主題 */
-        .row.type-arrived { border-left-color: var(--danger); background: linear-gradient(90deg, #fff1f2 0%, rgba(255,255,255,0.95) 100%); }
-        .row.type-soon { border-left-color: var(--warning); background: linear-gradient(90deg, #fffbeb 0%, rgba(255,255,255,0.95) 100%); }
-        .row.type-thanks { border-left-color: var(--success); background: linear-gradient(90deg, #f0fdf4 0%, rgba(255,255,255,0.95) 100%); }
+        .row.type-arrived {
+            border-left-color: var(--danger);
+            background: linear-gradient(90deg, #fff1f2 0%, rgba(255, 255, 255, 0.95) 100%);
+        }
+
+        .row.type-soon {
+            border-left-color: var(--warning);
+            background: linear-gradient(90deg, #fffbeb 0%, rgba(255, 255, 255, 0.95) 100%);
+        }
+
+        .row.type-thanks {
+            border-left-color: var(--success);
+            background: linear-gradient(90deg, #f0fdf4 0%, rgba(255, 255, 255, 0.95) 100%);
+        }
 
         .student-info {
             display: flex;
@@ -132,9 +151,23 @@
             white-space: nowrap;
         }
 
-        .row.type-arrived .status-badge { color: #fff; background: var(--danger); box-shadow: 0 8px 15px -3px rgba(239, 68, 68, 0.3); }
-        .row.type-soon .status-badge { color: #fff; background: var(--warning); box-shadow: 0 8px 15px -3px rgba(245, 158, 11, 0.3); }
-        .row.type-thanks .status-badge { color: #fff; background: var(--success); box-shadow: 0 8px 15px -3px rgba(16, 185, 129, 0.3); }
+        .row.type-arrived .status-badge {
+            color: #fff;
+            background: var(--danger);
+            box-shadow: 0 8px 15px -3px rgba(239, 68, 68, 0.3);
+        }
+
+        .row.type-soon .status-badge {
+            color: #fff;
+            background: var(--warning);
+            box-shadow: 0 8px 15px -3px rgba(245, 158, 11, 0.3);
+        }
+
+        .row.type-thanks .status-badge {
+            color: #fff;
+            background: var(--success);
+            box-shadow: 0 8px 15px -3px rgba(16, 185, 129, 0.3);
+        }
 
         .arrival-time {
             font-size: clamp(1.2rem, 3.5vw, 2.2rem);
@@ -157,9 +190,17 @@
         }
 
         @keyframes glowRed {
-            0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
-            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.4); }
-            100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
+            0% {
+                box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+            }
+
+            50% {
+                box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
+            }
+
+            100% {
+                box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+            }
         }
 
         .no-data {
@@ -201,8 +242,15 @@
         }
 
         @keyframes bounceBtn {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
         }
 
         /* RWD 手機版特化設定 */
@@ -210,9 +258,11 @@
             header {
                 padding: 15px 20px;
             }
+
             .billboard-container {
                 padding: 15px 20px;
             }
+
             .row {
                 flex-direction: column;
                 align-items: flex-start;
@@ -221,22 +271,26 @@
                 border-left-width: 8px;
                 border-radius: 16px;
             }
+
             .student-info {
                 gap: 12px;
                 flex-direction: column;
                 align-items: flex-start;
                 width: 100%;
             }
+
             .arrival-time {
                 align-self: flex-end;
                 font-size: 1.1rem;
                 margin-top: -15px;
                 color: #64748b;
             }
+
             .row:first-child {
                 border-width: 10px;
                 transform: scale(1);
             }
+
             .play-gesture-btn {
                 bottom: 25px;
                 right: 25px;
@@ -257,6 +311,102 @@
         <div class="no-data">🍃 靜候放學廣播中...</div>
     </div>
 
+    <!-- 🏗️ Relay Control Panel -->
+    <div class="relay-panel">
+        <div class="relay-title">🎛️ 設備控制</div>
+        <div class="relay-grid">
+            <div class="relay-item" onclick="sendRelay(1, true)">
+                <div class="relay-icon">📣</div>
+                <div class="relay-label">1號 (廣播)</div>
+                <div class="relay-toggle">點擊開啟</div>
+            </div>
+            <div class="relay-item" onclick="sendRelay(2, true)">
+                <div class="relay-icon">💡</div>
+                <div class="relay-label">2號 (門燈)</div>
+                <div class="relay-toggle">點擊開啟</div>
+            </div>
+            <div class="relay-item" onclick="sendRelay(3, true)">
+                <div class="relay-icon">🌬️</div>
+                <div class="relay-label">3號 (風扇)</div>
+                <div class="relay-toggle">點擊開啟</div>
+            </div>
+            <div class="relay-item" onclick="sendRelay(4, true)">
+                <div class="relay-icon">🚪</div>
+                <div class="relay-label">4號 (電門)</div>
+                <div class="relay-toggle">點擊開啟</div>
+            </div>
+        </div>
+        <div class="relay-all-off" onclick="allRelayOff()">一鍵關閉所有設備</div>
+    </div>
+
+    <style>
+        .relay-panel {
+            padding: 20px 5%;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.8);
+            margin-top: auto;
+        }
+
+        .relay-title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            color: #475569;
+        }
+
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .relay-item {
+            background: white;
+            padding: 15px;
+            border-radius: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .relay-item:active {
+            transform: scale(0.95);
+            background: #f1f5f9;
+        }
+
+        .relay-icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .relay-label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .relay-toggle {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .relay-all-off {
+            margin-top: 15px;
+            text-align: center;
+            padding: 12px;
+            background: #ffe4e6;
+            color: #be123c;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+    </style>
+
     <script>
         let lastHistoryHash = "";
         let textQueue = [];
@@ -270,13 +420,13 @@
             btn.id = 'play-gesture-btn';
             btn.className = 'play-gesture-btn';
             btn.textContent = "🔊 點擊解鎖背景語音";
-            btn.onclick = () => { 
+            btn.onclick = () => {
                 // Play silent audio to unlock AudioContext
                 audioPlayer.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
                 audioPlayer.play().catch(e => console.warn(e));
-                audioUnlocked = true; 
-                btn.remove(); 
-                speakNext(); 
+                audioUnlocked = true;
+                btn.remove();
+                speakNext();
             };
             document.body.appendChild(btn);
         }
@@ -284,9 +434,9 @@
         async function speakNext() {
             if (isSpeaking || textQueue.length === 0 || !audioUnlocked) return;
             isSpeaking = true;
-            
+
             const text = textQueue.shift();
-            
+
             try {
                 // 向後端請求 Edge TTS 音源
                 const res = await fetch("/api/tts_preview", {
@@ -299,7 +449,7 @@
 
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
-                
+
                 audioPlayer.src = url;
                 audioPlayer.onended = () => {
                     URL.revokeObjectURL(url);
@@ -331,13 +481,13 @@
                 const data = await res.json();
                 const currentHash = JSON.stringify(data.history);
                 if (currentHash === lastHistoryHash) return;
-                
+
                 // Diff and push text to queue
                 if (lastHistoryHash !== "") {
                     const oldObj = JSON.parse(lastHistoryHash);
                     const oldKeys = new Set(oldObj.map(x => x.name + x.time));
                     const newItems = data.history.filter(x => !oldKeys.has(x.name + x.time)).reverse();
-                    
+
                     for (let item of newItems) {
                         if (item.speech_text) {
                             textQueue.push(item.speech_text);
@@ -371,6 +521,36 @@
                     <div class="arrival-time">${item.time}</div>
                 </div>
             `).join('');
+        }
+
+        async function sendRelay(ch, on) {
+            try {
+                const res = await fetch("/api/relay/send", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ch: ch, on: on })
+                });
+                if (res.ok) {
+                    // Visual feedback
+                    const items = document.querySelectorAll('.relay-item');
+                    const target = items[ch - 1];
+                    if (target) {
+                        target.style.borderColor = on ? '#0ea5e9' : 'transparent';
+                        target.style.background = on ? '#f0f9ff' : 'white';
+                        setTimeout(() => {
+                            target.style.borderColor = 'transparent';
+                            target.style.background = 'white';
+                        }, 1000);
+                    }
+                }
+            } catch (e) { console.error("Relay error:", e); }
+        }
+
+        async function allRelayOff() {
+            if (!confirm("確定要關閉所有設備？")) return;
+            for (let i = 1; i <= 4; i++) {
+                await sendRelay(i, false);
+            }
         }
 
         setInterval(poll, 2500);

@@ -313,27 +313,36 @@
 
     <!-- 🏗️ Relay Control Panel -->
     <div class="relay-panel">
-        <div class="relay-title">🎛️ 設備控制</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="relay-title">🎛️ 設備控制 (本機硬體)</div>
+            <div id="serial-status-container" style="display: flex; align-items: center; gap: 10px;">
+                <span id="web-serial-status" style="font-size: 0.85rem; color: #64748b;">狀態：未連接</span>
+                <button id="btn-serial-connect" class="serial-btn" onclick="connectWebSerial()">🔌 連接繼電器</button>
+                <button id="btn-serial-disconnect" class="serial-btn"
+                    style="display:none; background:#fee2e2; color:#b91c1c;"
+                    onclick="disconnectWebSerial()">斷開連結</button>
+            </div>
+        </div>
         <div class="relay-grid">
-            <div class="relay-item" onclick="sendRelay(1, true)">
+            <div id="relay-item-1" class="relay-item" onclick="toggleRelay(1)">
                 <div class="relay-icon">📣</div>
                 <div class="relay-label">1號 (廣播)</div>
-                <div class="relay-toggle">點擊開啟</div>
+                <div class="relay-toggle" id="relay-status-1">狀態：關閉</div>
             </div>
-            <div class="relay-item" onclick="sendRelay(2, true)">
+            <div id="relay-item-2" class="relay-item" onclick="toggleRelay(2)">
                 <div class="relay-icon">💡</div>
                 <div class="relay-label">2號 (門燈)</div>
-                <div class="relay-toggle">點擊開啟</div>
+                <div class="relay-toggle" id="relay-status-2">狀態：關閉</div>
             </div>
-            <div class="relay-item" onclick="sendRelay(3, true)">
+            <div id="relay-item-3" class="relay-item" onclick="toggleRelay(3)">
                 <div class="relay-icon">🌬️</div>
                 <div class="relay-label">3號 (風扇)</div>
-                <div class="relay-toggle">點擊開啟</div>
+                <div class="relay-toggle" id="relay-status-3">狀態：關閉</div>
             </div>
-            <div class="relay-item" onclick="sendRelay(4, true)">
+            <div id="relay-item-4" class="relay-item" onclick="toggleRelay(4)">
                 <div class="relay-icon">🚪</div>
                 <div class="relay-label">4號 (電門)</div>
-                <div class="relay-toggle">點擊開啟</div>
+                <div class="relay-toggle" id="relay-status-4">狀態：關閉</div>
             </div>
         </div>
         <div class="relay-all-off" onclick="allRelayOff()">一鍵關閉所有設備</div>
@@ -405,6 +414,21 @@
             font-size: 0.9rem;
             cursor: pointer;
         }
+
+        .serial-btn {
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .relay-item.online {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+        }
     </style>
 
     <script>
@@ -473,7 +497,63 @@
             document.getElementById('clock').innerText = now.toLocaleTimeString('zh-TW', { hour12: false });
         }
         setInterval(updateClock, 1000);
+        let _serialPort = null;
+        let _serialWriter = null;
+        let relayStates = { 1: false, 2: false, 3: false, 4: false };
+
         updateClock();
+
+        async function connectWebSerial() {
+            if (!navigator.serial) {
+                alert("瀏覽器不支援 Web Serial API，請使用 Chrome 或 Edge。");
+                return;
+            }
+            try {
+                _serialPort = await navigator.serial.requestPort();
+                await _serialPort.open({ baudRate: 9600 });
+                _serialWriter = _serialPort.writable.getWriter();
+                document.getElementById('web-serial-status').textContent = "狀態：🟢 已連接硬體";
+                document.getElementById('btn-serial-connect').style.display = "none";
+                document.getElementById('btn-serial-disconnect').style.display = "block";
+            } catch (e) {
+                console.error("Serial connect error:", e);
+                alert("連接失敗: " + e.message);
+            }
+        }
+
+        async function disconnectWebSerial() {
+            try {
+                if (_serialWriter) {
+                    _serialWriter.releaseLock();
+                    _serialWriter = null;
+                }
+                if (_serialPort) {
+                    await _serialPort.close();
+                    _serialPort = null;
+                }
+            } catch (e) { console.warn(e); }
+            document.getElementById('web-serial-status').textContent = "狀態：未連接";
+            document.getElementById('btn-serial-connect').style.display = "block";
+            document.getElementById('btn-serial-disconnect').style.display = "none";
+        }
+
+        async function sendWebRelayCommand(ch, on) {
+            if (!_serialWriter) return false;
+            const bytes = new Uint8Array([0xA0, ch, on ? 1 : 0, (0xA0 + ch + (on ? 1 : 0)) & 0xFF]);
+            try {
+                await _serialWriter.write(bytes);
+                return true;
+            } catch (e) {
+                console.error("Serial write error:", e);
+                disconnectWebSerial();
+                return false;
+            }
+        }
+
+        function toggleRelay(ch) {
+            const newState = !relayStates[ch];
+            sendRelay(ch, newState);
+        }
 
         async function poll() {
             try {
@@ -491,6 +571,11 @@
                     for (let item of newItems) {
                         if (item.speech_text) {
                             textQueue.push(item.speech_text);
+                        }
+                        // 🌟 Auto Trigger Relay 1 on "Arrived"
+                        if (item.class === "type-arrived") {
+                            console.log("🚀 [自動聯動] 偵測到已到達，啟動 1 號繼電器 (擴大機)");
+                            sendRelay(1, true);
                         }
                     }
                     if (textQueue.length > 0 && !audioUnlocked) {
@@ -524,26 +609,38 @@
         }
 
         async function sendRelay(ch, on) {
+            // 1. Priority: Local Web Serial
+            if (_serialWriter) {
+                const ok = await sendWebRelayCommand(ch, on);
+                if (ok) {
+                    provideVisualFeedback(ch, on);
+                    return;
+                }
+            }
+
+            // 2. Fallback: Cloud API
             try {
                 const res = await fetch("/api/relay/send", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ch: ch, on: on })
                 });
-                if (res.ok) {
-                    // Visual feedback
-                    const items = document.querySelectorAll('.relay-item');
-                    const target = items[ch - 1];
-                    if (target) {
-                        target.style.borderColor = on ? '#0ea5e9' : 'transparent';
-                        target.style.background = on ? '#f0f9ff' : 'white';
-                        setTimeout(() => {
-                            target.style.borderColor = 'transparent';
-                            target.style.background = 'white';
-                        }, 1000);
-                    }
-                }
+                if (res.ok) provideVisualFeedback(ch, on);
             } catch (e) { console.error("Relay error:", e); }
+        }
+
+        function provideVisualFeedback(ch, on) {
+            const items = document.querySelectorAll('.relay-item');
+            const target = items[ch - 1];
+            if (target) {
+                if (on) target.classList.add('online');
+                else target.classList.remove('online');
+
+                // Temporary highlight for feedback
+                setTimeout(() => {
+                    if (on) target.classList.remove('online');
+                }, 1500);
+            }
         }
 
         async function allRelayOff() {

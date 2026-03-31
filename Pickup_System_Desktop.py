@@ -546,29 +546,41 @@ def handle_message(event):
         return
 
     # 🌟 Priority 1.5: Relay Control Keywords (#relay1 on/off)
-    if msg_text.lower().startswith("#relay"):
-        cmd = msg_text[6:].strip() # Get "1 on" etc.
+    m_lower = msg_text.lower()
+    relay_prefixes = ("#relay", "＃relay", "#繼電器", "＃繼電器", "#開關", "＃開關")
+    
+    match_prefix = next((p for p in relay_prefixes if m_lower.startswith(p)), None)
+    if match_prefix:
+        # Get everything after the prefix (e.g. "1 on" from "#relay1 on")
+        cmd = m_lower[len(match_prefix):].strip() 
         try:
-            # Check for space separation: "#relay1 on"
             parts = cmd.split()
             if not parts: return
             
-            ch_str = parts[0]
-            action = parts[1].lower() if len(parts) > 1 else "on"
+            ch_num = int(parts[0])
+            # Action: 如果有第二個詞則用它，否則預設為 "on"
+            action = parts[1] if len(parts) > 1 else "on"
             
-            ch_num = int(ch_str)
             if 1 <= ch_num <= 4:
-                is_on = action in ("on", "open", "啟動", "開")
-                if control_usb_relay4(ch_num, is_on):
-                    status_text = "啟動" if is_on else "關閉"
-                    line_reply(event.reply_token, f"✅ Relay {ch_num} {status_text}成功")
+                # 支援多種中文/英文開啟動作
+                is_on = action in ("on", "open", "啟動", "開", "啟", "開啓", "開啟")
+                
+                # If on Render, buffer the command for local agent
+                if os.environ.get("RENDER"):
+                    global pending_relay_commands
+                    pending_relay_commands.append({"ch": ch_num, "on": is_on})
+                    line_reply(event.reply_token, f"☁️ [雲端] Relay {ch_num} -> {'開啟' if is_on else '關閉'}")
                 else:
-                    line_reply(event.reply_token, f"❌ Relay {ch_num} 控制失敗 (埠: {RELAY4_PORT})")
+                    if control_usb_relay4(ch_num, is_on):
+                        status_text = "啟動" if is_on else "關閉"
+                        line_reply(event.reply_token, f"✅ Relay {ch_num} {status_text}成功")
+                    else:
+                        line_reply(event.reply_token, f"❌ Relay {ch_num} 失敗")
                 return
         except (ValueError, IndexError): pass
 
     # 🌟 Priority 1.6: Weather Trigger (#天氣)
-    if msg_text.startswith("#天氣") or msg_text.lower() == "weather":
+    if msg_text.startswith("#天氣") or msg_text.startswith("＃天氣") or m_lower == "weather":
         report = _get_weather_report()
         line_reply(event.reply_token, f"🌤️ 目前氣象資訊：\n\n{report}")
         # 同時語音播報

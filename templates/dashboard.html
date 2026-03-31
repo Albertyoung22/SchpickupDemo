@@ -53,8 +53,10 @@
             flex-wrap: nowrap;
             overflow-x: auto;
             white-space: nowrap;
-            -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
-            scrollbar-width: none; /* Hide scrollbar Firefox */
+            -ms-overflow-style: none;
+            /* Hide scrollbar IE/Edge */
+            scrollbar-width: none;
+            /* Hide scrollbar Firefox */
             gap: 1rem;
             padding: 1.5rem 2rem;
             background: var(--glass-bg);
@@ -548,31 +550,95 @@
 <body>
     <div class="layout">
         <div class="header">
-            <div class="header-left">
-                <h1>🏫 智慧接送監控中心</h1>
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div id="connection-status" class="status-dot"></div>
-                    <span id="status-text" style="color: var(--text-muted); font-size: 0.9rem;">正在連接伺服器...</span>
+            ...
+        </div>
+
+        <!-- 🏗️ Relay Control Panel -->
+        <div class="card"
+            style="margin-bottom: 1.5rem; border: 2px solid var(--primary); background: rgba(14, 165, 233, 0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3
+                    style="font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                    🎛️ 設備控制 (Relay Control)
+                </h3>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="web-serial-status" style="font-size: 0.8rem; color: var(--text-muted);">狀態：未連接</span>
+                    <button id="btn-serial-connect" class="btn btn-secondary"
+                        style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="connectWebSerial()">🔌
+                        硬體連線</button>
+                    <button id="btn-serial-disconnect" class="btn btn-secondary"
+                        style="display:none; padding: 0.3rem 0.6rem; font-size: 0.75rem; background:#fee2e2; color:#b91c1c;"
+                        onclick="disconnectWebSerial()">中斷</button>
+                    <button class="btn btn-secondary" onclick="allRelayOff()"
+                        style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #fff1f2; color: #be123c; border-color: #fecdd3;">一鍵全關</button>
                 </div>
             </div>
-            <div class="header-right">
-                <select id="voice-select" class="voice-selector-mini" onchange="saveSettings()"></select>
-                <div class="last-update" style="color: var(--text-muted); font-size: 0.9rem;">最後更新：<span
-                        id="last-update" style="color: var(--primary);">{{ now }}</span></div>
-                <a href="history" class="btn btn-primary"
-                    style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: var(--primary); border-color: var(--primary); padding: 0.6rem 1rem;">
-                    📜 接送日誌
-                </a>
-                <a href="/landing" class="btn btn-secondary"
-                    style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--primary); color: var(--primary); padding: 0.6rem 1rem;">
-                    🏠 宣傳介紹
-                </a>
-                <button class="btn btn-secondary" onclick="openSettings()"
-                    style="display: flex; align-items: center; gap: 0.5rem;">
-                    ⚙️ 系統設定
-                </button>
+            <div class="history-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div id="relay-card-1" class="relay-card" onclick="toggleRelay(1)">
+                    <div class="relay-status-dot"></div>
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📣</div>
+                    <div style="font-weight: 700;">1號 (廣播)</div>
+                    <div id="relay-status-1" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                </div>
+                <div id="relay-card-2" class="relay-card" onclick="toggleRelay(2)">
+                    <div class="relay-status-dot"></div>
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💡</div>
+                    <div style="font-weight: 700;">2號 (門燈)</div>
+                    <div id="relay-status-2" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                </div>
+                <div id="relay-card-3" class="relay-card" onclick="toggleRelay(3)">
+                    <div class="relay-status-dot"></div>
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🌬️</div>
+                    <div style="font-weight: 700;">3號 (風扇)</div>
+                    <div id="relay-status-3" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                </div>
+                <div id="relay-card-4" class="relay-card" onclick="toggleRelay(4)">
+                    <div class="relay-status-dot"></div>
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚪</div>
+                    <div style="font-weight: 700;">4號 (電門)</div>
+                    <div id="relay-status-4" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                </div>
             </div>
         </div>
+
+        <style>
+            .relay-card {
+                background: white;
+                padding: 1.25rem;
+                border-radius: 1rem;
+                border: 1px solid var(--border);
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .relay-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+                border-color: var(--primary);
+            }
+
+            .relay-card:active {
+                transform: scale(0.95);
+            }
+
+            .relay-status-dot {
+                position: absolute;
+                top: 0.75rem;
+                right: 0.75rem;
+                width: 8px;
+                height: 8px;
+                background: #e2e8f0;
+                border-radius: 50%;
+            }
+
+            .relay-card.active .relay-status-dot {
+                background: var(--success);
+                box-shadow: 0 0 8px var(--success);
+            }
+        </style>
 
         <div id="history-container" class="history-grid">
             <div class="empty-state">⏳ 正在同步接送資料...</div>
@@ -711,6 +777,36 @@
             `).join('');
             }
 
+            async function sendRelay(ch, on) {
+                try {
+                    const res = await fetch('/api/relay/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ch: ch, on: on })
+                    });
+                    if (res.ok) {
+                        const cards = document.querySelectorAll('.relay-card');
+                        const target = cards[ch - 1];
+                        if (target) {
+                            if (on) target.classList.add('active');
+                            else target.classList.remove('active');
+
+                            // Temporal feedback if just one-shot
+                            if (on) {
+                                setTimeout(() => target.classList.remove('active'), 2000);
+                            }
+                        }
+                    }
+                } catch (err) { console.error('Relay error:', err); }
+            }
+
+            async function allRelayOff() {
+                if (!confirm("確定要關閉所有設備？")) return;
+                for (let i = 1; i <= 4; i++) {
+                    await sendRelay(i, false);
+                }
+            }
+
             async function clearParent(name) {
                 try {
                     const res = await fetch('/api/clear_parent', {
@@ -729,6 +825,92 @@
                 const sound = document.getElementById('notification-sound');
                 sound.currentTime = 0;
                 sound.play().catch(e => console.log("Audio play blocked by browser."));
+            }
+
+            let _serialPort = null;
+            let _serialWriter = null;
+
+            async function connectWebSerial() {
+                if (!navigator.serial) {
+                    alert("瀏覽器不支援 Web Serial API，請使用 Chrome 或 Edge。");
+                    return;
+                }
+                try {
+                    _serialPort = await navigator.serial.requestPort();
+                    await _serialPort.open({ baudRate: 9600 });
+                    _serialWriter = _serialPort.writable.getWriter();
+                    document.getElementById('web-serial-status').textContent = "狀態：🟢 已連線";
+                    document.getElementById('btn-serial-connect').style.display = "none";
+                    document.getElementById('btn-serial-disconnect').style.display = "block";
+                } catch (e) {
+                    console.error("Serial connect error:", e);
+                    alert("連接失敗: " + e.message);
+                }
+            }
+
+            async function disconnectWebSerial() {
+                try {
+                    if (_serialWriter) {
+                        _serialWriter.releaseLock();
+                        _serialWriter = null;
+                    }
+                    if (_serialPort) {
+                        await _serialPort.close();
+                        _serialPort = null;
+                    }
+                } catch (e) { console.warn(e); }
+                document.getElementById('web-serial-status').textContent = "狀態：未連接";
+                document.getElementById('btn-serial-connect').style.display = "block";
+                document.getElementById('btn-serial-disconnect').style.display = "none";
+            }
+
+            async function sendWebRelayCommand(ch, on) {
+                if (!_serialWriter) return false;
+                const bytes = new Uint8Array([0xA0, ch, on ? 1 : 0, (0xA0 + ch + (on ? 1 : 0)) & 0xFF]);
+                try {
+                    await _serialWriter.write(bytes);
+                    return true;
+                } catch (e) {
+                    console.error("Serial write error:", e);
+                    disconnectWebSerial();
+                    return false;
+                }
+            }
+
+            async function sendRelay(ch, on) {
+                // 1. Priority: Local Web Serial
+                if (_serialWriter) {
+                    const ok = await sendWebRelayCommand(ch, on);
+                    if (ok) {
+                        updateRelayUI(ch, on);
+                        return;
+                    }
+                }
+
+                // 2. Fallback: Cloud API
+                try {
+                    const res = await fetch('/api/relay/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ch: ch, on: on })
+                    });
+                    if (res.ok) {
+                        updateRelayUI(ch, on);
+                    }
+                } catch (err) { console.error('Relay error:', err); }
+            }
+
+            function updateRelayUI(ch, on) {
+                const cards = document.querySelectorAll('.relay-card');
+                const target = cards[ch - 1];
+                if (target) {
+                    if (on) target.classList.add('active');
+                    else target.classList.remove('active');
+
+                    if (on) {
+                        setTimeout(() => target.classList.remove('active'), 2000);
+                    }
+                }
             }
 
             function showToast() {

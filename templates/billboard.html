@@ -327,22 +327,22 @@
             <div id="relay-item-1" class="relay-item" onclick="toggleRelay(1)">
                 <div class="relay-icon">📣</div>
                 <div class="relay-label">1號 (廣播)</div>
-                <div class="relay-toggle" id="relay-status-1">狀態：關閉</div>
+                <div class="relay-toggle" id="relay-status-1">狀態：<span style='color: #94a3b8;'>●</span> 關閉</div>
             </div>
             <div id="relay-item-2" class="relay-item" onclick="toggleRelay(2)">
                 <div class="relay-icon">💡</div>
                 <div class="relay-label">2號 (門燈)</div>
-                <div class="relay-toggle" id="relay-status-2">狀態：關閉</div>
+                <div class="relay-toggle" id="relay-status-2">狀態：<span style='color: #94a3b8;'>●</span> 關閉</div>
             </div>
             <div id="relay-item-3" class="relay-item" onclick="toggleRelay(3)">
                 <div class="relay-icon">🌬️</div>
                 <div class="relay-label">3號 (風扇)</div>
-                <div class="relay-toggle" id="relay-status-3">狀態：關閉</div>
+                <div class="relay-toggle" id="relay-status-3">狀態：<span style='color: #94a3b8;'>●</span> 關閉</div>
             </div>
             <div id="relay-item-4" class="relay-item" onclick="toggleRelay(4)">
                 <div class="relay-icon">🚪</div>
                 <div class="relay-label">4號 (電門)</div>
-                <div class="relay-toggle" id="relay-status-4">狀態：關閉</div>
+                <div class="relay-toggle" id="relay-status-4">狀態：<span style='color: #94a3b8;'>●</span> 關閉</div>
             </div>
         </div>
         <div class="relay-all-off" onclick="allRelayOff()">一鍵關閉所有設備</div>
@@ -613,6 +613,7 @@
             if (_serialWriter) {
                 const ok = await sendWebRelayCommand(ch, on);
                 if (ok) {
+                    relayStates[ch] = on;
                     provideVisualFeedback(ch, on);
                     return;
                 }
@@ -625,23 +626,29 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ch: ch, on: on })
                 });
-                if (res.ok) provideVisualFeedback(ch, on);
+                if (res.ok) {
+                    relayStates[ch] = on;
+                    provideVisualFeedback(ch, on);
+                }
             } catch (e) { console.error("Relay error:", e); }
         }
 
         function provideVisualFeedback(ch, on) {
             const items = document.querySelectorAll('.relay-item');
             const target = items[ch - 1];
+            const statusText = document.getElementById(`relay-status-${ch}`);
             if (target) {
-                if (on) target.classList.add('online');
-                else target.classList.remove('online');
+                if (on) {
+                    target.classList.add('online');
+                    if (statusText) statusText.innerHTML = "狀態：<span style='color: #10b981;'>●</span> 開啟";
+                } else {
+                    target.classList.remove('online');
+                    if (statusText) statusText.innerHTML = "狀態：<span style='color: #94a3b8;'>●</span> 關閉";
+                }
 
-                // Temporary highlight for feedback
-                setTimeout(() => {
-                    if (on) target.classList.remove('online');
-                }, 1500);
             }
         }
+
 
         async function allRelayOff() {
             if (!confirm("確定要關閉所有設備？")) return;
@@ -650,9 +657,28 @@
             }
         }
 
+        async function pollRelayStatus() {
+            try {
+                const res = await fetch('/api/relay/status');
+                if (res.ok) {
+                    const states = await res.json();
+                    for (let ch in states) {
+                        const is_on = states[ch];
+                        if (relayStates[ch] !== is_on) {
+                            relayStates[ch] = is_on;
+                            provideVisualFeedback(Number(ch), is_on);
+                        }
+                    }
+                }
+            } catch (e) { console.error("Relay poll error:", e); }
+        }
+
         setInterval(poll, 2500);
+        setInterval(pollRelayStatus, 3000);
         poll();
+        pollRelayStatus();
     </script>
+
 </body>
 
 </html>

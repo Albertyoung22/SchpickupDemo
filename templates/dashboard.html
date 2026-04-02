@@ -469,6 +469,8 @@
                 font-size: 1.25rem;
             }
 
+            ;
+
             .header-right {
                 gap: 0.25rem;
                 flex-shrink: 0;
@@ -550,7 +552,30 @@
 <body>
     <div class="layout">
         <div class="header">
-            ...
+            <div class="header-left">
+                <h1>🏫 智慧接送監控中心</h1>
+                <div class="status-header">
+                    <div id="connection-status" class="status-dot"></div>
+                    <span id="status-text">正在連接伺服器...</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <select id="voice-select" class="voice-selector-mini" onchange="saveSettings()"></select>
+                <div class="last-update" style="color: var(--text-muted); font-size: 0.9rem;">最後更新：<span
+                        id="last-update" style="color: var(--primary);">{{ now }}</span></div>
+                <a href="history" class="btn btn-primary"
+                    style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: var(--primary); border-color: var(--primary); padding: 0.6rem 1rem;">
+                    📜 接送日誌
+                </a>
+                <a href="/business_profile" class="btn btn-secondary"
+                    style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--primary); color: var(--primary); padding: 0.6rem 1rem;">
+                    🏢 商業簡介
+                </a>
+                <button class="btn btn-secondary" onclick="openSettings()"
+                    style="display: flex; align-items: center; gap: 0.5rem;">
+                    ⚙️ 系統設定
+                </button>
+            </div>
         </div>
 
         <!-- 🏗️ Relay Control Panel -->
@@ -578,25 +603,29 @@
                     <div class="relay-status-dot"></div>
                     <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📣</div>
                     <div style="font-weight: 700;">1號 (廣播)</div>
-                    <div id="relay-status-1" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                    <div id="relay-status-1" style="font-size: 0.75rem; color: var(--text-muted);">狀態：<span
+                            style='color: #94a3b8;'>●</span> 關閉</div>
                 </div>
                 <div id="relay-card-2" class="relay-card" onclick="toggleRelay(2)">
                     <div class="relay-status-dot"></div>
                     <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">💡</div>
                     <div style="font-weight: 700;">2號 (門燈)</div>
-                    <div id="relay-status-2" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                    <div id="relay-status-2" style="font-size: 0.75rem; color: var(--text-muted);">狀態：<span
+                            style='color: #94a3b8;'>●</span> 關閉</div>
                 </div>
                 <div id="relay-card-3" class="relay-card" onclick="toggleRelay(3)">
                     <div class="relay-status-dot"></div>
                     <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🌬️</div>
                     <div style="font-weight: 700;">3號 (風扇)</div>
-                    <div id="relay-status-3" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                    <div id="relay-status-3" style="font-size: 0.75rem; color: var(--text-muted);">狀態：<span
+                            style='color: #94a3b8;'>●</span> 關閉</div>
                 </div>
                 <div id="relay-card-4" class="relay-card" onclick="toggleRelay(4)">
                     <div class="relay-status-dot"></div>
                     <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚪</div>
                     <div style="font-weight: 700;">4號 (電門)</div>
-                    <div id="relay-status-4" style="font-size: 0.75rem; color: var(--text-muted);">狀態：關閉</div>
+                    <div id="relay-status-4" style="font-size: 0.75rem; color: var(--text-muted);">狀態：<span
+                            style='color: #94a3b8;'>●</span> 關閉</div>
                 </div>
             </div>
         </div>
@@ -638,7 +667,53 @@
                 background: var(--success);
                 box-shadow: 0 0 8px var(--success);
             }
+
+            /* 🔊 語音按鈕 - Responsive */
+            .play-gesture-btn {
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                z-index: 10000;
+                padding: 16px 28px;
+                font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+                font-family: 'Outfit', 'Microsoft JhengHei', sans-serif;
+                background: linear-gradient(135deg, #0ea5e9, #10b981);
+                color: white;
+                border: none;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+                font-weight: 900;
+                cursor: pointer;
+                animation: bounceBtn 2s infinite;
+                transition: transform 0.2s, background 0.2s;
+            }
+
+            .play-gesture-btn:active {
+                transform: scale(0.95);
+            }
+
+            @keyframes bounceBtn {
+
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+
+                50% {
+                    transform: translateY(-8px);
+                }
+            }
+
+            @media (max-width: 640px) {
+                .play-gesture-btn {
+                    bottom: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    font-size: 0.85rem;
+                }
+            }
         </style>
+
 
         <div id="history-container" class="history-grid">
             <div class="empty-state">⏳ 正在同步接送資料...</div>
@@ -710,6 +785,58 @@
         <script>
             let currentHistory = [];
             let firstLoad = true;
+            let lastHistoryHash = "";
+            let textQueue = [];
+            let isSpeaking = false;
+            let audioUnlocked = false;
+            let audioPlayer = document.createElement("audio");
+
+            function showGestureBtn() {
+                if (audioUnlocked || document.getElementById('play-gesture-btn')) return;
+                const btn = document.createElement('button');
+                btn.id = 'play-gesture-btn';
+                btn.className = 'play-gesture-btn';
+                btn.textContent = "🔊 點擊解鎖背景語音";
+                btn.onclick = () => {
+                    audioPlayer.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+                    audioPlayer.play().catch(e => console.warn(e));
+                    audioUnlocked = true;
+                    btn.remove();
+                    speakNext();
+                };
+                document.body.appendChild(btn);
+            }
+
+            async function speakNext() {
+                if (isSpeaking || textQueue.length === 0 || !audioUnlocked) return;
+                isSpeaking = true;
+                const text = textQueue.shift();
+                try {
+                    const res = await fetch("/api/tts_preview", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text: text })
+                    });
+                    if (!res.ok) throw new Error("TTS Request Failed");
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    audioPlayer.src = url;
+                    audioPlayer.onended = () => {
+                        URL.revokeObjectURL(url);
+                        isSpeaking = false;
+                        setTimeout(speakNext, 100);
+                    };
+                    audioPlayer.onerror = () => {
+                        isSpeaking = false;
+                        setTimeout(speakNext, 100);
+                    };
+                    await audioPlayer.play();
+                } catch (err) {
+                    console.error("Speech error", err);
+                    isSpeaking = false;
+                    setTimeout(speakNext, 100);
+                }
+            }
 
             async function pollData() {
                 try {
@@ -717,13 +844,40 @@
                     if (!response.ok) throw new Error();
                     const data = await response.json();
 
-                    updateStatus(true);
-                    updateUI(data.history, data.now);
+                    const currentHash = JSON.stringify(data.history);
+                    if (currentHash !== lastHistoryHash) {
+                        // Diff and handle new items
+                        if (lastHistoryHash !== "") {
+                            const oldObj = JSON.parse(lastHistoryHash);
+                            const oldKeys = new Set(oldObj.map(x => x.name + x.time));
+                            const newItems = data.history.filter(x => !oldKeys.has(x.name + x.time)).reverse();
+
+                            for (let item of newItems) {
+                                if (item.speech_text) {
+                                    textQueue.push(item.speech_text);
+                                }
+                                // 🌟 Auto Trigger Relay 1 on "Arrived"
+                                if (item.class === "type-arrived") {
+                                    console.log("🚀 [自動聯動] 偵測到已到達，啟動 1 號繼電器 (擴大機)");
+                                    sendRelay(1, true);
+                                }
+                            }
+
+                            if (textQueue.length > 0) {
+                                if (!audioUnlocked) showGestureBtn();
+                                else speakNext();
+                            }
+                        }
+                        lastHistoryHash = currentHash;
+                        updateStatus(true);
+                        updateUI(data.history, data.now);
+                    }
                 } catch (err) {
                     updateStatus(false);
                     console.error('Polling error:', err);
                 }
             }
+
 
             function updateStatus(isOnline) {
                 const el = document.getElementById('connection-status');
@@ -777,27 +931,11 @@
             `).join('');
             }
 
-            async function sendRelay(ch, on) {
-                try {
-                    const res = await fetch('/api/relay/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ch: ch, on: on })
-                    });
-                    if (res.ok) {
-                        const cards = document.querySelectorAll('.relay-card');
-                        const target = cards[ch - 1];
-                        if (target) {
-                            if (on) target.classList.add('active');
-                            else target.classList.remove('active');
+            let relayStates = { 1: false, 2: false, 3: false, 4: false };
 
-                            // Temporal feedback if just one-shot
-                            if (on) {
-                                setTimeout(() => target.classList.remove('active'), 2000);
-                            }
-                        }
-                    }
-                } catch (err) { console.error('Relay error:', err); }
+            function toggleRelay(ch) {
+                const newState = !relayStates[ch];
+                sendRelay(ch, newState);
             }
 
             async function allRelayOff() {
@@ -878,10 +1016,12 @@
             }
 
             async function sendRelay(ch, on) {
+
                 // 1. Priority: Local Web Serial
                 if (_serialWriter) {
                     const ok = await sendWebRelayCommand(ch, on);
                     if (ok) {
+                        relayStates[ch] = on;
                         updateRelayUI(ch, on);
                         return;
                     }
@@ -895,6 +1035,7 @@
                         body: JSON.stringify({ ch: ch, on: on })
                     });
                     if (res.ok) {
+                        relayStates[ch] = on;
                         updateRelayUI(ch, on);
                     }
                 } catch (err) { console.error('Relay error:', err); }
@@ -903,15 +1044,19 @@
             function updateRelayUI(ch, on) {
                 const cards = document.querySelectorAll('.relay-card');
                 const target = cards[ch - 1];
+                const statusText = document.getElementById(`relay-status-${ch}`);
                 if (target) {
-                    if (on) target.classList.add('active');
-                    else target.classList.remove('active');
-
                     if (on) {
-                        setTimeout(() => target.classList.remove('active'), 2000);
+                        target.classList.add('active');
+                        if (statusText) statusText.innerHTML = "狀態：<span style='color: #10b981;'>●</span> 開啟";
+                    } else {
+                        target.classList.remove('active');
+                        if (statusText) statusText.innerHTML = "狀態：<span style='color: #94a3b8;'>●</span> 關閉";
                     }
                 }
             }
+
+
 
             function showToast() {
                 const toast = document.getElementById('toast');
@@ -1080,8 +1225,26 @@
             document.getElementById('rate-range').oninput = updateRangeLabels;
             document.getElementById('volume-range').oninput = updateRangeLabels;
 
+            async function pollRelayStatus() {
+                try {
+                    const res = await fetch('/api/relay/status');
+                    if (res.ok) {
+                        const states = await res.json();
+                        for (let ch in states) {
+                            const is_on = states[ch];
+                            if (relayStates[ch] !== is_on) {
+                                relayStates[ch] = is_on;
+                                updateRelayUI(ch, is_on);
+                            }
+                        }
+                    }
+                } catch (e) { console.error("Relay poll error:", e); }
+            }
+
             setInterval(pollData, 3000);
+            setInterval(pollRelayStatus, 3000); // 新增繼電器狀態同步
             pollData();
+            pollRelayStatus(); // 初始同步
             loadSettingsFromAPI(); // Populate voice selector on load
         </script>
 

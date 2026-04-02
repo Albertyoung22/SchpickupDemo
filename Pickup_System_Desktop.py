@@ -567,6 +567,8 @@ def api_relay_get():
     global pending_relay_commands
     cmds = list(pending_relay_commands)
     pending_relay_commands = [] # 領完即焚
+    if cmds:
+        logger.info(f"📤 [雲端發送指令] 已將 {len(cmds)} 條指令發送至本地 Agent 執行")
     return jsonify(cmds)
 
 @app.route("/api/relay/status", methods=['GET'])

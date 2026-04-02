@@ -86,7 +86,7 @@ def control_usb_relay4(ch: int, on: bool):
             logger.info(f"Relay {ch} set to {'ON' if on else 'OFF'} via {RELAY4_PORT}")
             return True
     except Exception as e:
-        logger.error(f"Relay Control Error ({RELAY4_PORT}): {e}")
+        logger.error(f"❌ [硬體錯誤] 無法連接至 {RELAY4_PORT}: {e}")
         return False
 
 speech_queue = queue.Queue()
@@ -819,10 +819,16 @@ def local_relay_poller():
     import requests
     
     last_sync_time = 0
+    last_keep_alive = 0
     
     while True:
         try:
             now = time.time()
+            # 每 60 秒印一次測試連線 log，方便使用者確認程式沒當掉
+            if now - last_keep_alive > 60:
+                logger.info(f"🟢 [控制輪詢中] 測試連線正常, 目標: {CLOUD_URL}")
+                last_keep_alive = now
+
             # 1. 向雲端「領取」待執行的指令
             r = requests.get(f"{CLOUD_URL}/api/relay/get", timeout=5)
             executed_any = False
@@ -841,8 +847,9 @@ def local_relay_poller():
                 sync_data = {str(k): v for k, v in relay_states.items()}
                 requests.post(f"{CLOUD_URL}/api/relay/update_status", json=sync_data, timeout=5)
                 last_sync_time = now
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"⚠️ [輪詢異常] 雲端連線失敗: {e}")
+            time.sleep(5) # 發生錯誤時稍微等待
         time.sleep(1.2) # 輪詢頻率
 
 threading.Thread(target=local_relay_poller, daemon=True).start()

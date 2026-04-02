@@ -68,6 +68,7 @@ VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-7936-740c-86
 
 # --- 4-Relay Configuration ---
 RELAY4_PORT = os.getenv("RELAY4_PORT", "COM5") 
+relay_states = {1: False, 2: False, 3: False, 4: False} # 追蹤繼電器狀態
 
 def control_usb_relay4(ch: int, on: bool):
     """控制 4-Relay 第 ch 路繼電器（1~4） - 採用 LCUS-4 協定"""
@@ -80,6 +81,7 @@ def control_usb_relay4(ch: int, on: bool):
         with serial.Serial(RELAY4_PORT, 9600, timeout=0.5) as ser:
             ser.write(payload)
             ser.flush()
+            relay_states[ch] = on # 更新狀態
             logger.info(f"Relay {ch} set to {'ON' if on else 'OFF'} via {RELAY4_PORT}")
             return True
     except Exception as e:
@@ -94,7 +96,38 @@ activity_log = []
 LOG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-74fa-7e9a-9840-3b14b0890057"
 CLOUD_URL = os.getenv("CLOUD_URL", "https://schpickupdemo.onrender.com")
 
-# --- Cloud Relay Command Buffer (Only used in Cloud mode) ---
+# --- Business Config ---
+BUSINESS_CONFIG_FILE = "business_config.json"
+business_config = {}
+
+def load_business_config():
+    global business_config
+    default_config = {
+        "account_name": "接送系統Demo",
+        "status_message": "",
+        "show_followers": False,
+        "address": "尚未登錄",
+        "business_hours": "",
+        "website": "",
+        "phone": "",
+        "bottom_buttons": ["加入好友"]
+    }
+    if os.path.exists(BUSINESS_CONFIG_FILE):
+        try:
+            with open(BUSINESS_CONFIG_FILE, "r", encoding="utf-8") as f:
+                business_config = json.load(f)
+        except: business_config = default_config
+    else: business_config = default_config
+
+def save_business_config():
+    try:
+        with open(BUSINESS_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(business_config, f, ensure_ascii=False, indent=4)
+    except: pass
+
+load_business_config()
+
+# --- Cloud Relay Command Buffer ---
 pending_relay_commands = []
 
 def get_help_text():
@@ -446,6 +479,20 @@ def landing():
 def manual():
     return render_template('manual.html')
 
+@app.route("/business_profile", methods=['GET'])
+def business_profile():
+    return render_template('business_profile.html')
+
+@app.route("/api/business_config", methods=['GET', 'POST'])
+def api_business_config():
+    global business_config
+    if request.method == 'POST':
+        data = request.json
+        business_config.update(data)
+        save_business_config()
+        return jsonify({"status": "success"})
+    return jsonify(business_config)
+
 @app.route("/dashboard", methods=['GET'])
 @app.route("/pickup/dashboard", methods=['GET'])
 def dashboard():
@@ -520,6 +567,11 @@ def api_relay_get():
     pending_relay_commands = [] # 領完即焚
     return jsonify(cmds)
 
+@app.route("/api/relay/status", methods=['GET'])
+def api_relay_status():
+    """ 讓前端網頁獲取目前的繼電器狀態 """
+    return jsonify(relay_states)
+
 @app.route("/", methods=['POST'])
 @app.route("/pickup", methods=['POST'], strict_slashes=False)
 def callback():
@@ -557,26 +609,42 @@ def handle_message(event):
             parts = cmd.split()
             if not parts: return
             
-            ch_num = int(parts[0])
-            # Action: 如果有第二個詞則用它，否則預設為 "on"
-            action = parts[1] if len(parts) > 1 else "on"
-            
-            if 1 <= ch_num <= 4:
-                # 支援多種中文/英文開啟動作
-                is_on = action in ("on", "open", "啟動", "開", "啟", "開啓", "開啟")
-                
-                # If on Render, buffer the command for local agent
-                if os.environ.get("RENDER"):
-                    global pending_relay_commands
-                    pending_relay_commands.append({"ch": ch_num, "on": is_on})
-                    line_reply(event.reply_token, f"☁️ [雲端] Relay {ch_num} -> {'開啟' if is_on else '關閉'}")
-                else:
-                    if control_usb_relay4(ch_num, is_on):
-                        status_text = "啟動" if is_on else "關閉"
-                        line_reply(event.reply_token, f"✅ Relay {ch_num} {status_text}成功")
+            # 支援 "#relay all on" 或 "#relay all off"
+            if parts[0] == "all":
+                action = parts[1] if len(parts) > 1 else "on"
+                is_on = action in ("on", "open", "啟動", "開", "開啓", "開啟")
+                for ch in (1, 2, 3, 4):
+                    if os.environ.get("RENDER"):
+                        pending_relay_commands.append({"ch": ch, "on": is_on})
                     else:
-                        line_reply(event.reply_token, f"❌ Relay {ch_num} 失敗")
+                        control_usb_relay4(ch, is_on)
+                status_text = "全部開啟" if is_on else "全部關閉"
+                line_reply(event.reply_token, f"⚡ [批量指令] {status_text}執行中")
                 return
+
+            ch_num = int(parts[0])
+            # Action: 如果有第二個詞則用它，否則執行 Toggle
+            if len(parts) > 1:
+                action = parts[1]
+                is_on = action in ("on", "open", "啟動", "開", "啟", "開啓", "開啟")
+            else:
+                # Toggle logic: 根據目前 relay_states 狀態翻轉
+                is_on = not relay_states.get(ch_num, False)
+            
+            # If on Render, buffer the command for local agent
+            if os.environ.get("RENDER"):
+                global pending_relay_commands
+                pending_relay_commands.append({"ch": ch_num, "on": is_on})
+                line_reply(event.reply_token, f"☁️ [雲端] Relay {ch_num} -> {'開啟' if is_on else '關閉'}")
+            else:
+                if control_usb_relay4(ch_num, is_on):
+                    status_text = "啟動" if is_on else "關閉"
+                    line_reply(event.reply_token, f"✅ Relay {ch_num} {status_text}成功")
+                else:
+                    line_reply(event.reply_token, f"❌ Relay {ch_num} 失敗")
+            return
+
+
         except (ValueError, IndexError): pass
 
     # 🌟 Priority 1.6: Weather Trigger (#天氣)

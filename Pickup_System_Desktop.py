@@ -157,7 +157,7 @@ def line_reply(reply_token, text):
             line_bot_api = MessagingApi(api_client)
             line_bot_api.reply_message(ReplyMessageRequest(reply_token=reply_token, messages=[TextMessage(text=text)]))
     except Exception as e:
-        logger.error(f"Failed to reply via LINE: {e}")
+        logger.error(f"❌ [LINE 回覆失敗] Token: {reply_token[:10]}... Error: {e}")
 
 def load_parents_db():
     global PARENTS_DB
@@ -604,6 +604,7 @@ def handle_message(event):
     global pending_relay_commands, pickup_history, activity_log
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
+    logger.info(f"📩 [收到 LINE 訊息] From: {user_id[-5:]} Text: '{msg_text}'")
     
     # 🌟 Priority 1: Handle Keywords (Never Broadcast, Guide only)
     help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明", "電話", "聯絡中心", "Menu", "menu", "官方選單"]
@@ -621,6 +622,7 @@ def handle_message(event):
     
     match_prefix = next((p for p in relay_prefixes if m_lower.startswith(p)), None)
     if match_prefix:
+        logger.info(f"⚡ [命中繼電器指令] Prefix: {match_prefix}")
         # Get everything after the prefix (e.g. "1 on" from "#relay1 on")
         cmd = m_lower[len(match_prefix):].strip() 
         try:
@@ -651,10 +653,12 @@ def handle_message(event):
             
             # If on Render, buffer the command for local agent
             if os.environ.get("RENDER"):
+                logger.info(f"☁️ [雲端模式] 正在暫存指令: {ch_num} -> {is_on}")
                 pending_relay_commands.append({"ch": ch_num, "on": is_on})
                 r_name = RELAY_NAMES.get(ch_num, f"繼電器 {ch_num}")
                 line_reply(event.reply_token, f"☁️ [雲端] {r_name} -> {'開啟' if is_on else '關閉'}")
             else:
+                logger.info(f"🏠 [本地模式] 正在執行指令: {ch_num} -> {is_on}")
                 if control_usb_relay4(ch_num, is_on):
                     r_name = RELAY_NAMES.get(ch_num, f"繼電器 {ch_num}")
                     status_text = "啟動" if is_on else "關閉"

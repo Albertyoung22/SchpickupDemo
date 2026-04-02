@@ -572,6 +572,22 @@ def api_relay_status():
     """ 讓前端網頁獲取目前的繼電器狀態 """
     return jsonify(relay_states)
 
+@app.route("/api/relay/update_status", methods=['POST'])
+def api_relay_update_status():
+    """ 讓本地端回報目前的實體繼電器狀態至雲端 """
+    global relay_states
+    data = request.json
+    if data and isinstance(data, dict):
+        for k, v in data.items():
+            try:
+                ch = int(k)
+                if ch in (1,2,3,4):
+                    relay_states[ch] = bool(v)
+            except: pass
+        logger.info(f"📡 [狀態同步] 雲端狀態已更新: {relay_states}")
+        return jsonify(ok=True)
+    return jsonify(ok=False), 400
+
 @app.route("/", methods=['POST'])
 @app.route("/pickup", methods=['POST'], strict_slashes=False)
 def callback():
@@ -589,7 +605,7 @@ def handle_message(event):
     user_id = event.source.user_id
     
     # 🌟 Priority 1: Handle Keywords (Never Broadcast, Guide only)
-    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明", "電話", "聯絡中心"]
+    help_keywords = ["幫助", "註冊", "？", "?", "選單", "身分", "身份", "指南", "Help", "格式", "王小明", "電話", "聯絡中心", "Menu", "menu", "官方選單"]
     if any(k in msg_text for k in help_keywords):
         # Specific Handle for Phone
         if "電話" in msg_text or "聯絡中心" in msg_text:
@@ -600,7 +616,7 @@ def handle_message(event):
 
     # 🌟 Priority 1.5: Relay Control Keywords (#relay1 on/off)
     m_lower = msg_text.lower()
-    relay_prefixes = ("#relay", "＃relay", "#繼電器", "＃繼電器", "#開關", "＃開關")
+    relay_prefixes = ("#relay", "＃relay", "#繼電器", "＃繼電器", "#開關", "＃開關", "relay", "繼電器", "開關")
     
     match_prefix = next((p for p in relay_prefixes if m_lower.startswith(p)), None)
     if match_prefix:
@@ -786,24 +802,36 @@ def handle_message(event):
 
 # --- Local Relay Poller (Local Side) ---
 def local_relay_poller():
-    """ 只有在本地模式執行：向雲端輪詢是否有繼電器指令 """
+    """ 只有在本地模式執行：向雲端輪詢是否有繼電器指令，並同步回報狀態 """
     if os.environ.get("RENDER"): return # 雲端環境不執行此輪詢
     
     logger.info(f"🛰️ [遠端控制啟動] 開始向雲端輪詢繼電器指令 ({CLOUD_URL})...")
     import requests
+    
+    last_sync_time = 0
+    
     while True:
         try:
-            # 向雲端領取指令
+            now = time.time()
+            # 1. 向雲端「領取」待執行的指令
             r = requests.get(f"{CLOUD_URL}/api/relay/get", timeout=5)
+            executed_any = False
             if r.status_code == 200:
                 cmds = r.json()
                 for c in cmds:
                     ch = c.get("ch")
                     on = c.get("on")
                     logger.info(f"⚡ [收到雲端指令] 控制繼電器 {ch} 為 {'ON' if on else 'OFF'}")
-                    control_usb_relay4(ch, on)
-        except Exception as e:
-            # logger.debug(f"Cloud poll error: {e}") 
+                    if control_usb_relay4(ch, on):
+                        executed_any = True
+            
+            # 2. 如果之前執行過指令，或每隔 30 秒，主動同步狀態回雲端
+            if executed_any or (now - last_sync_time > 30):
+                # 準備狀態資料 (JSON 只支援字串作為 Key)
+                sync_data = {str(k): v for k, v in relay_states.items()}
+                requests.post(f"{CLOUD_URL}/api/relay/update_status", json=sync_data, timeout=5)
+                last_sync_time = now
+        except Exception:
             pass
         time.sleep(1.2) # 輪詢頻率
 

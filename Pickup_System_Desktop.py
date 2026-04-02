@@ -584,6 +584,7 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
+    global pending_relay_commands, pickup_history, activity_log
     msg_text = event.message.text.strip()
     user_id = event.source.user_id
     
@@ -633,7 +634,6 @@ def handle_message(event):
             
             # If on Render, buffer the command for local agent
             if os.environ.get("RENDER"):
-                global pending_relay_commands
                 pending_relay_commands.append({"ch": ch_num, "on": is_on})
                 line_reply(event.reply_token, f"☁️ [雲端] Relay {ch_num} -> {'開啟' if is_on else '關閉'}")
             else:
@@ -738,7 +738,6 @@ def handle_message(event):
     elif "即將到達" in msg_text: s_text, s_label, s_class = "預計 5 分鐘內即將到達。", "即將到達", "type-soon"
     elif "接走" in msg_text or "接到孩子" in msg_text: s_text, s_label, s_class = "已接到孩子，謝謝老師。", "已接到孩子", "type-thanks"
     elif "晚點到" in msg_text: s_text, s_label, s_class = "會晚點到，請老師知悉。", "會晚點到", "type-soon"
-    global pickup_history, activity_log
     pickup_history = [h for h in pickup_history if h["name"] != parent_name]
     
     tz = datetime.timezone(datetime.timedelta(hours=8))

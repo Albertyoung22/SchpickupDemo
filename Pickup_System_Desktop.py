@@ -556,6 +556,7 @@ def api_relay_send():
     on = data.get("on", True)
     if ch in (1,2,3,4):
         pending_relay_commands.append({"ch": ch, "on": on})
+        relay_states[ch] = on # 🌟 Optimistic Update for instant UI sync
         logger.info(f"☁️ [雲端指令暫存] Relay {ch} -> {'ON' if on else 'OFF'}")
         return jsonify(ok=True)
     return jsonify(ok=False), 400
@@ -636,6 +637,7 @@ def handle_message(event):
                 for ch in (1, 2, 3, 4):
                     if os.environ.get("RENDER"):
                         pending_relay_commands.append({"ch": ch, "on": is_on})
+                        relay_states[ch] = is_on # 🌟 Optimistic Update
                     else:
                         control_usb_relay4(ch, is_on)
                 status_text = "一鍵開啟" if is_on else "一鍵關閉"
@@ -655,6 +657,7 @@ def handle_message(event):
             if os.environ.get("RENDER"):
                 logger.info(f"☁️ [雲端模式] 正在暫存指令: {ch_num} -> {is_on}")
                 pending_relay_commands.append({"ch": ch_num, "on": is_on})
+                relay_states[ch_num] = is_on # 🌟 Optimistic Update
                 r_name = RELAY_NAMES.get(ch_num, f"繼電器 {ch_num}")
                 line_reply(event.reply_token, f"☁️ [雲端] {r_name} -> {'開啟' if is_on else '關閉'}")
             else:

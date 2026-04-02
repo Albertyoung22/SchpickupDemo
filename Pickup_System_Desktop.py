@@ -69,6 +69,7 @@ VOICE_CONFIG_BLOB_URL = "https://jsonblob.com/api/jsonBlob/019d2b5b-7936-740c-86
 # --- 4-Relay Configuration ---
 RELAY4_PORT = os.getenv("RELAY4_PORT", "COM5") 
 relay_states = {1: False, 2: False, 3: False, 4: False} # 追蹤繼電器狀態
+RELAY_NAMES = {1: "📣 1號 (廣播)", 2: "💡 2號 (門燈)", 3: "🌬️ 3號 (風扇)", 4: "🚪 4號 (電門)"}
 
 def control_usb_relay4(ch: int, on: bool):
     """控制 4-Relay 第 ch 路繼電器（1~4） - 採用 LCUS-4 協定"""
@@ -635,8 +636,8 @@ def handle_message(event):
                         pending_relay_commands.append({"ch": ch, "on": is_on})
                     else:
                         control_usb_relay4(ch, is_on)
-                status_text = "全部開啟" if is_on else "全部關閉"
-                line_reply(event.reply_token, f"⚡ [批量指令] {status_text}執行中")
+                status_text = "一鍵開啟" if is_on else "一鍵關閉"
+                line_reply(event.reply_token, f"⚡ [批量指令] {status_text}所有設備中")
                 return
 
             ch_num = int(parts[0])
@@ -651,13 +652,15 @@ def handle_message(event):
             # If on Render, buffer the command for local agent
             if os.environ.get("RENDER"):
                 pending_relay_commands.append({"ch": ch_num, "on": is_on})
-                line_reply(event.reply_token, f"☁️ [雲端] Relay {ch_num} -> {'開啟' if is_on else '關閉'}")
+                r_name = RELAY_NAMES.get(ch_num, f"繼電器 {ch_num}")
+                line_reply(event.reply_token, f"☁️ [雲端] {r_name} -> {'開啟' if is_on else '關閉'}")
             else:
                 if control_usb_relay4(ch_num, is_on):
+                    r_name = RELAY_NAMES.get(ch_num, f"繼電器 {ch_num}")
                     status_text = "啟動" if is_on else "關閉"
-                    line_reply(event.reply_token, f"✅ Relay {ch_num} {status_text}成功")
+                    line_reply(event.reply_token, f"✅ {r_name} {status_text}成功")
                 else:
-                    line_reply(event.reply_token, f"❌ Relay {ch_num} 失敗")
+                    line_reply(event.reply_token, f"❌ {RELAY_NAMES.get(ch_num, 'Relay')} 失敗")
             return
 
 

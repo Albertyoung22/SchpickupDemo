@@ -1241,11 +1241,31 @@
                 } catch (e) { console.error("Relay poll error:", e); }
             }
 
+            // 🌟 核心橋樑：讓網頁去抓雲端指令並轉發給 USB 電路板
+            async function pollCloudCommands() {
+                if (!_serialWriter) return; // 沒連接硬體就不用抓
+                try {
+                    const res = await fetch('/api/relay/get');
+                    if (res.ok) {
+                        const cmds = await res.json();
+                        for (let c of cmds) {
+                            console.log("☁️ [收到雲端指令]", c);
+                            const ok = await sendWebRelayCommand(c.ch, c.on);
+                            if (ok) {
+                                relayStates[c.ch] = c.on;
+                                updateRelayUI(c.ch, c.on);
+                            }
+                        }
+                    }
+                } catch (e) { console.error("Cloud command fetch error:", e); }
+            }
+
             setInterval(pollData, 3000);
-            setInterval(pollRelayStatus, 3000); // 新增繼電器狀態同步
+            setInterval(pollRelayStatus, 3000); 
+            setInterval(pollCloudCommands, 2000); // 每 2 秒抓一次雲端指令
             pollData();
-            pollRelayStatus(); // 初始同步
-            loadSettingsFromAPI(); // Populate voice selector on load
+            pollRelayStatus(); 
+            loadSettingsFromAPI(); 
         </script>
 
 </body>

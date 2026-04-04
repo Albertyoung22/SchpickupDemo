@@ -621,7 +621,7 @@ def handle_message(event):
 
     # 🌟 Priority 1.5: Relay Control Keywords (#relay1 on/off)
     m_lower = msg_text.lower()
-    relay_prefixes = ("#relay", "＃relay", "#繼電器", "＃繼電器", "#開關", "＃開關", "relay", "繼電器", "開關")
+    relay_prefixes = ("#relay", "#realy", "＃relay", "＃realy", "#繼電器", "＃繼電器", "#開關", "＃開關", "relay", "realy", "繼電器", "開關")
     
     match_prefix = next((p for p in relay_prefixes if m_lower.startswith(p)), None)
     if match_prefix:
@@ -646,13 +646,18 @@ def handle_message(event):
                 line_reply(event.reply_token, f"⚡ [批量指令] {status_text}所有設備中")
                 return
 
-            ch_num = int(parts[0])
-            # Action: 如果有第二個詞則用它，否則執行 Toggle
-            if len(parts) > 1:
-                action = parts[1]
-                is_on = action in ("on", "open", "啟動", "開", "啟", "開啓", "開啟")
+            # 強化解析：嘗試切割數字與動作 (處理無空格的情況，如 #relay1on)
+            import re
+            match = re.search(r"(\d+)\s*(.*)", cmd)
+            if not match: return
+            
+            ch_num = int(match.group(1))
+            action_part = match.group(2).strip()
+
+            # Action: 如果有動作詞則判斷，否則執行 Toggle (切換)
+            if action_part:
+                is_on = any(k in action_part for k in ("on", "open", "啟動", "開", "啟", "開啓", "開啟"))
             else:
-                # Toggle logic: 根據目前 relay_states 狀態翻轉
                 is_on = not relay_states.get(ch_num, False)
             
             # If on Render, buffer the command for local agent
@@ -886,7 +891,7 @@ def run_app():
         logger.info("☁️ [環境檢測] 正在 Render 雲端環境執行。")
         global enable_local_play
         enable_local_play = False # Disable local play on cloud
-        # On Render, the server is managed by Gunicorn or starts here
+        # On Render, the server is managed web: gunicorn Pickup_System_Desktop:app --workers 1 --timeout 120e
         app.run(host='0.0.0.0', port=port, debug=False)
     else:
         # Local Desktop Mode

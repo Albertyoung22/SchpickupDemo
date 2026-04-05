@@ -692,11 +692,28 @@
                 } catch (e) { console.error("Cloud command fetch error:", e); }
             }
 
+        async function autoConnectSerial() {
+            if (!navigator.serial) return;
+            try {
+                const ports = await navigator.serial.getPorts();
+                if (ports.length > 0) {
+                    _serialPort = ports[0];
+                    await _serialPort.open({ baudRate: 9600 });
+                    _serialWriter = _serialPort.writable.getWriter();
+                    document.getElementById('web-serial-status').textContent = "狀態：🟢 已自動連接";
+                    document.getElementById('btn-serial-connect').style.display = "none";
+                    document.getElementById('btn-serial-disconnect').style.display = "block";
+                    console.log("🚀 [自動連線] 看板已恢復連線至電路板");
+                }
+            } catch (e) { console.warn("看板自動連線失敗:", e); }
+        }
+
         setInterval(poll, 2500);
         setInterval(pollRelayStatus, 3000);
         setInterval(pollCloudCommands, 2000); // 每一點五秒抓一次，提高反應速到
         poll();
         pollRelayStatus();
+        autoConnectSerial(); // 啟動自動連線
     </script>
 
 </body>

@@ -986,6 +986,22 @@
                 }
             }
 
+            async function autoConnectSerial() {
+                if (!navigator.serial) return;
+                try {
+                    const ports = await navigator.serial.getPorts();
+                    if (ports.length > 0) {
+                        _serialPort = ports[0];
+                        await _serialPort.open({ baudRate: 9600 });
+                        _serialWriter = _serialPort.writable.getWriter();
+                        document.getElementById('web-serial-status').textContent = "狀態：🟢 已自動連線";
+                        document.getElementById('btn-serial-connect').style.display = "none";
+                        document.getElementById('btn-serial-disconnect').style.display = "block";
+                        console.log("🚀 [自動連線] 已成功連線至先前的設備");
+                    }
+                } catch (e) { console.warn("自動連線失敗:", e); }
+            }
+
             async function disconnectWebSerial() {
                 try {
                     if (_serialWriter) {
@@ -1266,6 +1282,7 @@
             pollData();
             pollRelayStatus(); 
             loadSettingsFromAPI(); 
+            autoConnectSerial(); // 🚀 啟動自動連線
         </script>
 
 </body>
